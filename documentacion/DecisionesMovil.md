@@ -1,10 +1,23 @@
 # Decisiones de tecnologías para la aplicación móvil
 
-> Conversión a Markdown de `DecisionesMovil.docx`. El contenido original se conserva
-> tal cual; al final se añade una sección con las decisiones que cambiaron durante la
-> implementación, indicando el motivo.
+Documento de decisiones del proyecto **Detección de Equipos de Rumiología**: qué
+tecnología se eligió en cada punto, contra qué alternativa, y por qué.
+
+Está dividido en tres partes:
+
+1. **Documento original** — las decisiones tomadas antes de programar.
+2. **Stack tecnológico explicado** — qué se usa hoy y la razón de cada pieza.
+3. **Actualizaciones durante la implementación** — lo que cambió al chocar con la
+   realidad, y por qué.
+
+Para el detalle de cada clase y función del código, ver
+[`ExplicacionDetalle.md`](ExplicacionDetalle.md).
 
 ---
+
+# Parte 1 — Documento original
+
+> Conversión a Markdown de `DecisionesMovil.docx`, sin alterar el contenido.
 
 ## Modelo de IA para detección de objetos
 
@@ -65,15 +78,11 @@ El flujo será:
 2. Se convierte cada frame a un `ByteBuffer` de tamaño `640x640x3`, normalizado según
    el modelo.
 3. Se ejecuta `interpreter.run(inputBuffer, outputMap)`.
-4. Se leen las salidas:
-   - `boxes` → coordenadas normalizadas `[x1, y1, x2, y2]`
-   - `scores` → confianza
-   - `classes` → índice de clase
+4. Se leen las salidas: `boxes`, `scores`, `classes`.
 5. Se filtran las detecciones con confianza > 0.5 o 0.6.
 6. Se escalan las coordenadas al tamaño real de la vista.
 7. Se dibujan rectángulos y etiquetas en el `OverlayView`.
-8. Si el usuario toca un equipo, se abre su ficha técnica o el chat con el backend RAG
-   *(por definir)*.
+8. Si el usuario toca un equipo, se abre su ficha técnica o el chat con el backend RAG.
 
 ## Speech-to-Text
 
@@ -81,7 +90,136 @@ El flujo será:
 
 ---
 
-# Actualizaciones durante la implementación
+# Parte 2 — Stack tecnológico explicado
+
+## Visión general
+
+```
+ENTRENAMIENTO (fuera del teléfono, una sola vez)
+  Fotos → Label Studio → dataset → Colab + YOLO26 → model.tflite
+
+EJECUCIÓN (en el teléfono, en cada frame)
+  CameraX → Detector (LiteRT) → OverlayView → toque del usuario
+                                                    │
+                                                    ▼
+                                          Ficha técnica / Asistente RAG
+```
+
+La idea de fondo: **todo el trabajo pesado ocurre una vez, en la nube; el teléfono
+solo ejecuta el resultado.** Entrenar exige una GPU y horas de cómputo; usar el
+modelo ya entrenado son unos milisegundos de CPU.
+
+## Java en lugar de Kotlin
+
+El proyecto venía en Java y se mantuvo. Kotlin es hoy el lenguaje recomendado para
+Android y habría permitido escribir menos código, pero cambiar de lenguaje a mitad de
+un proyecto añade riesgo sin aportar nada al objetivo. Todas las librerías usadas
+funcionan igual en ambos.
+
+## `minSdk 26` (Android 8.0)
+
+El proyecto arrancó con `minSdk 34`, que restringe la app a Android 14 o superior —
+una fracción pequeña de los teléfonos reales. Nada de lo que se usa lo exige, así que
+se bajó a 26 para cubrir prácticamente cualquier dispositivo actual.
+
+## CameraX en lugar de Camera2
+
+La API `Camera2` de Android es potente pero brutalmente verbosa: sesiones, hilos,
+superficies y estados que hay que gestionar a mano, con comportamientos distintos
+según fabricante.
+
+CameraX es una capa encima que resuelve eso:
+
+| Componente | Para qué |
+|---|---|
+| `PreviewView` | Muestra el vídeo en pantalla |
+| `ImageAnalysis` | Entrega cada frame como dato para procesar |
+| `ProcessCameraProvider` | Ata la cámara al ciclo de vida de la Activity |
+
+Ese último punto es más importante de lo que parece: al vincular la cámara al ciclo
+de vida, se libera sola cuando la app pasa a segundo plano. Con Camera2 ese es un
+origen clásico de fugas de recursos y de cámaras que se quedan bloqueadas.
+
+Dos ajustes concretos que hace la app:
+
+- **`STRATEGY_KEEP_ONLY_LATEST`** — si el modelo tarda más de lo que la cámara produce
+  frames, se descartan los intermedios en vez de acumular una cola. Sin esto, el
+  retraso crece hasta que la app parece congelada.
+- **`OUTPUT_IMAGE_FORMAT_RGBA_8888`** — pedir los frames ya en RGBA evita tener que
+  convertir manualmente desde YUV, que es un algoritmo largo y propenso a errores.
+
+## LiteRT (antes TensorFlow Lite)
+
+Es el motor que ejecuta la red neuronal dentro del teléfono. Dos decisiones aquí:
+
+**Por qué en el dispositivo y no en un servidor.** Enviar cada frame a un servidor
+sería imposible en tiempo real: latencia de red, consumo de datos y dependencia de la
+conexión. El laboratorio puede no tener buena señal. En local, la inferencia son
+milisegundos y funciona sin internet.
+
+**Por qué el intérprete directo y no la Task Library.** La Task Library trae clases
+listas (`ObjectDetector`) que esperan un formato de salida concreto. YOLO26 no lo
+cumple: devuelve un tensor propio. Con el intérprete directo se lee el tensor tal cual
+y se interpreta como haga falta, que es justo lo que necesita este modelo.
+
+## Modelo *nano* a 640×640, sin cuantizar
+
+- **Nano** es la variante más pequeña de YOLO26 (2.4M parámetros). Las mayores son más
+  precisas pero varias veces más lentas; en un móvil, la velocidad manda.
+- **640×640** es la resolución estándar de entrenamiento de YOLO. Bajar a 320 duplica
+  la velocidad a costa de perder objetos pequeños o lejanos.
+- **Sin cuantizar (float32)** no fue una elección sino una consecuencia: la
+  cuantización int8 rompe la exportación de YOLO26 (ver Parte 3). El modelo pesa 9 MB
+  en vez de ~3 MB.
+
+## Label Studio para etiquetar
+
+Se evaluó **Roboflow**, más cómodo, pero su plan gratuito **publica el dataset**. Las
+fotos incluyen instalaciones y personas del laboratorio, así que quedó descartado.
+
+Label Studio es open source, corre en local y los datos no salen de la máquina. Su
+limitación: no se conecta con Google Drive (solo S3, GCS, Azure y Redis), así que el
+flujo es descargar de Drive → etiquetar en local → volver a subir el dataset dividido.
+
+## Google Colab para entrenar
+
+Entrenar una red neuronal necesita una GPU NVIDIA. El equipo de desarrollo solo tiene
+gráficos integrados AMD, donde el entrenamiento pasaría de minutos a muchas horas.
+Colab ofrece una GPU **Tesla T4** gratuita: el entrenamiento completo tardó **18
+minutos**.
+
+Los checkpoints se guardan directamente en Drive para que una desconexión de Colab no
+cueste el entrenamiento entero.
+
+## Retrofit para el asistente
+
+Cliente HTTP estándar en Android. Convierte una interfaz Java en llamadas de red y
+serializa el JSON automáticamente con Gson. Alternativas como `HttpURLConnection`
+obligan a escribir a mano el hilo, el parseo y el manejo de errores.
+
+**El asistente no llamará al proveedor de IA directamente desde la app.** La API key
+acabaría dentro del APK, y extraerla es trivial. Hará falta un servicio intermedio
+que guarde la clave.
+
+## Markdown para las fichas técnicas
+
+Las fichas de los siete equipos están en `.md` y no en una base de datos ni en JSON
+por tres razones: se leen bien sin herramientas, se muestran fácil en la app, y —la
+decisiva— **se trocean de forma natural por secciones** (`## Seguridad`,
+`## Procedimiento`), que es exactamente como conviene fragmentar documentos para un
+sistema RAG.
+
+## Decisiones aún abiertas
+
+| Tema | Estado |
+|---|---|
+| RAG gestionado (File Search) vs implementación propia | Sin decidir |
+| Proveedor: Gemini u OpenAI | Sin decidir |
+| Speech-to-Text: `SpeechRecognizer` de Android vs enviar audio al servidor | Sin decidir |
+
+---
+
+# Parte 3 — Actualizaciones durante la implementación
 
 Cambios respecto al documento original, con el motivo de cada uno.
 
@@ -140,17 +278,31 @@ Dos fallos reproducibles, ambos con el mismo síntoma (`KeyError: 'feats'`):
 
 Además, `format='tflite'` está obsoleto desde la 8.4.83; se usa `format='litert'`.
 
-## Etiquetado: Label Studio
+## Las fotos venían en HEIC
 
-Se descartó Roboflow porque su plan gratuito publica el dataset, y las fotos incluyen
-instalaciones y personas del laboratorio. Label Studio es open source y corre en local.
+144 de las 340 fotos originales estaban en formato HEIC (iPhone), que ni Label Studio
+ni YOLO pueden leer. Dos clases completas (`ankom_daisy_incubator` y `ankom_estufa`)
+eran 100 % HEIC: sin convertirlas, esas clases sencillamente no habrían existido para
+el modelo, y sin dar ningún error.
 
-No se conecta con Google Drive (solo S3, GCS, Azure y Redis), así que el flujo es:
-descargar las fotos de Drive → etiquetar en local → volver a subir el dataset dividido.
+Se añadió `ml/scripts/prepare_images.py`, que además aplica la rotación EXIF (sin ella
+el modelo entrena con imágenes giradas 90°) y reduce a 1280 px (de 1.2 GB a 73 MB).
+
+## Limitaciones conocidas del dataset
+
+306 imágenes con 322 cajas: aproximadamente **una caja por foto**. Varias fotos son
+tomas abiertas donde aparecen varios equipos, y los no etiquetados le enseñan al
+modelo que ese aparato es "fondo".
+
+`ankom_estufa` tiene 7 imágenes de entrenamiento y 1 de validación: no es detectable
+de forma fiable, y su métrica no significa nada.
+
+El mAP50 global de 0.985 está inflado: muchas fotos son ráfagas casi idénticas
+repartidas entre entrenamiento y validación, así que el modelo reconoce imágenes casi
+vistas en vez de generalizar.
 
 ## Pendiente
 
 - Ficha técnica de cada equipo al tocar una detección.
 - Asistente RAG por chat y por voz.
-- Speech-to-Text: sin decidir entre `SpeechRecognizer` de Android (offline, gratis,
-  calidad variable) y enviar el audio al backend (mejor calidad, requiere conexión).
+- Completar el contenido de las siete fichas técnicas.
