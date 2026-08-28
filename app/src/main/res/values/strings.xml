@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Rumiologia</string>
+
+    <string name="estado_iniciando">Iniciando…</string>
+    <string name="estado_sin_modelo">Modelo no encontrado: coloca model.tflite en assets/</string>
+    <string name="permiso_camara_necesario">Se necesita permiso de cámara para detectar los equipos</string>
+    <string name="error_camara">No se pudo abrir la cámara</string>
+</resources>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Fondo semitransparente para textos sobre la camara -->
+    <color name="overlay_scrim">#99000000</color>
+
+    <!-- Un color por clase; el orden es el de labels.txt (indices 0..6).
+         Coinciden con los colores de la configuracion de Label Studio. -->
+    <array name="colores_clases">
+        <item>#E6194B</item>
+        <item>#3CB44B</item>
+        <item>#FFE119</item>
+        <item>#4363D8</item>
+        <item>#F58231</item>
+        <item>#911EB4</item>
+        <item>#46F0F0</item>
+    </array>
+</resources>

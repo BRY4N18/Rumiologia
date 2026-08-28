@@ -1,0 +1,56 @@
+# --- Android / Gradle ---
+.gradle/
+build/
+app/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# --- Android Studio / IntelliJ ---
+.idea/
+*.iml
+
+# --- Python / ML ---
+.venv/
+__pycache__/
+*.pyc
+
+# El dataset vive en Google Drive, no en el repo:
+# git no versiona binarios, los acumula. Cada reetiquetado guardaria copias
+# completas nuevas que ya no se pueden borrar sin reescribir el historial.
+ml/datasets/
+ml/runs/
+ml/export_labelstudio/
+dataset/
+dataset.zip
+# Carpetas de fotos completas: contienen imagenes del laboratorio con personas.
+# Nunca deben llegar a un repositorio publico.
+ml/imagenes_crudas/
+ml/imagenes_listas/
+
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.webp
+*.heic
+*.HEIC
+*.heif
+
+# Pesos de PyTorch (se regeneran entrenando; guardalos en Drive)
+*.pt
+
+# Excepciones: si van al repo porque la app los necesita para compilar
+!app/src/main/res/**/*.png
+!app/src/main/res/**/*.webp
+!ml/models/*.tflite
+!app/src/main/assets/*.tflite
+
+# --- Sistema ---
+.DS_Store
+Thumbs.db

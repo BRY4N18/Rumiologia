@@ -1,0 +1,13 @@
+<View>
+  <Image name="image" value="$image" zoom="true" zoomControl="true" rotateControl="false"/>
+
+  <RectangleLabels name="label" toName="image">
+    <Label value="ankom_200_fiber_analyzer" background="#E6194B"/>
+    <Label value="ankom_daisy_incubator"    background="#3CB44B"/>
+    <Label value="ankom_estufa"             background="#FFE119"/>
+    <Label value="aquasearcher_ab33m1"      background="#4363D8"/>
+    <Label value="contador_de_colonias"     background="#F58231"/>
+    <Label value="memmert"                  background="#911EB4"/>
+    <Label value="ohaus_pr224"              background="#46F0F0"/>
+  </RectangleLabels>
+</View>

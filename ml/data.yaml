@@ -1,0 +1,28 @@
+# ---------------------------------------------------------------------------
+# Configuracion del dataset para YOLO26 (Ultralytics)
+#
+# 'path' apunta al disco LOCAL de Colab (/content/dataset), no a Drive.
+# El dataset se copia como .zip desde Drive y se descomprime ahi por velocidad.
+#
+# IMPORTANTE: el orden de 'names' es el contrato del proyecto.
+#   - Debe coincidir con el orden de etiquetas en Label Studio.
+#   - Genera los indices 0,1,2... que devuelve el modelo.
+#   - Debe coincidir con app/src/main/assets/labels.txt en Android.
+# Si reordenas esta lista, todo queda mal etiquetado SIN dar error.
+#
+# Los nombres para mostrar al usuario estan en ml/clases.json.
+# ---------------------------------------------------------------------------
+
+path: /content/dataset
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: ankom_200_fiber_analyzer     # ANKOM 200 Fiber Analyzer
+  1: ankom_daisy_incubator        # ANKOM DAISY Incubator
+  2: ankom_estufa                 # ANKOM Estufa
+  3: aquasearcher_ab33m1          # AQUASEARCHER AB33M1 (OHAUS)
+  4: contador_de_colonias         # Contador de colonias
+  5: memmert                      # MEMMERT
+  6: ohaus_pr224                  # Ohaus PR224
