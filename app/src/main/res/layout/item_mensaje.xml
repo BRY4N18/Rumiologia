@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Un único layout para los tres tipos de mensaje (usuario, asistente y error).
+  El adaptador cambia la alineación del contenedor y el fondo de la burbuja según
+  el origen: tres layouts casi idénticos serían más código para el mismo resultado.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/burbujaContenedor"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="4dp">
+
+    <TextView
+        android:id="@+id/mensajeTexto"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="300dp"
+        android:textColor="@android:color/white"
+        android:textSize="15sp"
+        android:lineSpacingMultiplier="1.15"
+        tools:text="La estufa se enciende con el interruptor principal."
+        xmlns:tools="http://schemas.android.com/tools" />
+
+    <TextView
+        android:id="@+id/mensajeFuentes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:maxWidth="300dp"
+        android:textColor="@color/chat_subtitulo"
+        android:textSize="11sp"
+        android:textStyle="italic"
+        android:visibility="gone" />
+
+</LinearLayout>
