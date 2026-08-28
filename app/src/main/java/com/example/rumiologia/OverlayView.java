@@ -1,6 +1,7 @@
 package com.example.rumiologia;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -81,13 +82,24 @@ public class OverlayView extends View {
         setClickable(true);
     }
 
+    /**
+     * Lee el array de colores por clase.
+     *
+     * <p>Se usa {@code obtainTypedArray} y no {@code getStringArray}: aapt2 compila
+     * los valores {@code #RRGGBB} como recursos de tipo color, y pedirlos como
+     * cadenas devuelve nulos.
+     */
     private int[] leerColoresClase() {
-        String[] hex = getResources().getStringArray(R.array.colores_clases);
-        int[] colores = new int[hex.length];
-        for (int i = 0; i < hex.length; i++) {
-            colores[i] = Color.parseColor(hex[i]);
+        TypedArray tipado = getResources().obtainTypedArray(R.array.colores_clases);
+        try {
+            int[] colores = new int[tipado.length()];
+            for (int i = 0; i < colores.length; i++) {
+                colores[i] = tipado.getColor(i, Color.RED);
+            }
+            return colores;
+        } finally {
+            tipado.recycle();
         }
-        return colores;
     }
 
     public void setOnDetectionClickListener(OnDetectionClickListener listener) {
