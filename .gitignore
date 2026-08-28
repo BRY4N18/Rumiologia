@@ -54,3 +54,7 @@ ml/imagenes_listas/
 # --- Sistema ---
 .DS_Store
 Thumbs.db
+
+# Backend del asistente RAG
+backend/.env
+backend/__pycache__/

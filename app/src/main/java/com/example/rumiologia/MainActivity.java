@@ -7,7 +7,6 @@ import android.graphics.Matrix;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -23,8 +22,10 @@ import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
+import androidx.core.splashscreen.SplashScreen;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.rumiologia.asistente.ChatActivity;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.nio.ByteBuffer;
@@ -65,6 +66,9 @@ public class MainActivity extends AppCompatActivity {
     private long framesContados = 0;
     private long ultimoReporteMs = 0;
 
+    /** Mientras sea false, la pantalla de presentacion sigue visible. */
+    private boolean detectorListo = false;
+
     private final ActivityResultLauncher<String> pedirPermisoCamara =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), concedido -> {
                 if (concedido) {
@@ -76,6 +80,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Debe ir ANTES de super.onCreate: instala la pantalla de presentacion y
+        // sustituye el tema de arranque por el normal cuando termina.
+        SplashScreen splash = SplashScreen.installSplashScreen(this);
+        splash.setKeepOnScreenCondition(() -> !detectorListo);
+
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
@@ -90,9 +99,11 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        // Tocar una caja abre el asistente ya situado en ese equipo: el backend
+        // usa el slug como pista para desambiguar preguntas como "como lo enciendo".
         overlayView.setOnDetectionClickListener(deteccion ->
-                // TODO: abrir la ficha tecnica del equipo y el chat RAG
-                Toast.makeText(this, deteccion.toString(), Toast.LENGTH_SHORT).show());
+                startActivity(ChatActivity.intentPara(
+                        this, deteccion.label, Equipos.nombreDe(this, deteccion.label))));
 
         ejecutorAnalisis = Executors.newSingleThreadExecutor();
         prepararDetector();
@@ -113,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
         if (!Detector.modeloDisponible(this, Detector.MODELO_POR_DEFECTO)) {
             statusText.setText(R.string.estado_sin_modelo);
             Log.w(TAG, "Falta assets/" + Detector.MODELO_POR_DEFECTO);
+            detectorListo = true;      // sin modelo no hay nada que esperar
             return;
         }
         try {
@@ -121,6 +133,10 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, "No se pudo cargar el modelo", e);
             statusText.setText(getString(R.string.estado_sin_modelo));
+        } finally {
+            // Pase lo que pase, la presentacion debe desaparecer: si el modelo
+            // falla, el usuario tiene que ver el aviso, no un logo eterno.
+            detectorListo = true;
         }
     }
 

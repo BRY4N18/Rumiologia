@@ -6,4 +6,19 @@
     </style>
 
     <style name="Theme.Rumiologia" parent="Base.Theme.Rumiologia" />
+
+    <!--
+      Tema de arranque. Android lo muestra desde el instante en que se toca el
+      icono, antes de que exista la Activity: por eso el logo aparece de
+      inmediato en vez de una pantalla en blanco.
+
+      MainActivity lo mantiene visible hasta que el modelo .tflite termina de
+      cargar, asi que el tiempo de espera se llena con el logo en lugar de con
+      una camara sin detecciones.
+    -->
+    <style name="Theme.Rumiologia.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_fondo</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.Rumiologia</item>
+    </style>
 </resources>

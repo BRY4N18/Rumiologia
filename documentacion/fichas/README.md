@@ -3,23 +3,32 @@
 Una ficha por cada clase que detecta el modelo. El identificador y el índice
 coinciden con `ml/clases.json` y `app/src/main/assets/labels.txt`.
 
-| # | Equipo | Ficha | Estado |
-|---|---|---|---|
-| 0 | ANKOM 200 Fiber Analyzer | [`ankom_200_fiber_analyzer.md`](ankom_200_fiber_analyzer.md) | Borrador |
-| 1 | ANKOM DAISY Incubator | [`ankom_daisy_incubator.md`](ankom_daisy_incubator.md) | Borrador |
-| 2 | ANKOM Estufa | [`ankom_estufa.md`](ankom_estufa.md) | Borrador |
-| 3 | AQUASEARCHER AB33M1 (OHAUS) | [`aquasearcher_ab33m1.md`](aquasearcher_ab33m1.md) | Borrador |
-| 4 | Contador de colonias | [`contador_de_colonias.md`](contador_de_colonias.md) | Borrador |
-| 5 | MEMMERT | [`memmert.md`](memmert.md) | Sin identificar |
-| 6 | Ohaus PR224 | [`ohaus_pr224.md`](ohaus_pr224.md) | Borrador |
+Contenido tomado de los instructivos del laboratorio elaborados por la
+Ing. Nathaly Mera Macías (Técnico de Laboratorio, Laboratorio de Biología y
+Microbiología). Los originales en Word están en `MOVIL APP EXAM/`.
 
-## Cómo completarlas
+| # | Equipo | Ficha |
+|---|---|---|
+| 0 | Analizador de Fibra ANKOM 200 | [`ankom_200_fiber_analyzer.md`](ankom_200_fiber_analyzer.md) |
+| 1 | Incubadora ANKOM DAISY | [`ankom_daisy_incubator.md`](ankom_daisy_incubator.md) |
+| 2 | Estufa de Secado ANKOM | [`ankom_estufa.md`](ankom_estufa.md) |
+| 3 | Medidor Multiparámetro AQUASEARCHER AB33M1 (OHAUS) | [`aquasearcher_ab33m1.md`](aquasearcher_ab33m1.md) |
+| 4 | Contador de Colonias | [`contador_de_colonias.md`](contador_de_colonias.md) |
+| 5 | Estufa Universal MEMMERT | [`memmert.md`](memmert.md) |
+| 6 | Balanza Analítica OHAUS PR224 | [`ohaus_pr224.md`](ohaus_pr224.md) |
 
-Los campos `TODO` salen del manual del fabricante o de la placa de
-características del equipo. Conviene priorizar **Qué es**, **Uso en el
-laboratorio** y **Procedimiento básico**: son las secciones que el usuario
-consultará al apuntar la cámara, y las que darán mejores respuestas cuando
-estas fichas alimenten al asistente RAG.
+## Estructura de cada ficha
 
-El formato Markdown no es casual: se lee bien tal cual, se muestra fácil en
-la app y se trocea de forma natural por secciones para indexarlo en el RAG.
+Todas siguen las mismas secciones, y no es casual: el asistente RAG trocea los
+documentos por encabezados `##`, de modo que cada sección es una unidad de
+búsqueda independiente. Una pregunta como *«¿cómo enciendo la estufa?»*
+recupera **Procedimiento básico de operación**, y *«¿qué cuidados tiene?»*
+recupera **Precauciones y seguridad**.
+
+| Sección | Responde a |
+|---|---|
+| Qué es y para qué sirve | ¿Qué es este equipo? |
+| Usos principales | ¿Para qué se usa en el laboratorio? |
+| Procedimiento básico de operación | ¿Cómo lo enciendo y lo opero? |
+| Precauciones y seguridad | ¿Qué riesgos tiene? ¿Qué no debo hacer? |
+| Datos y valores de referencia | Temperaturas, capacidades, tiempos |

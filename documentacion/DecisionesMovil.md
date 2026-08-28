@@ -98,37 +98,37 @@ El flujo será:
 ENTRENAMIENTO (fuera del teléfono, una sola vez)
   Fotos → Label Studio → dataset → Colab + YOLO26 → model.tflite
 
-EJECUCIÓN (en el teléfono, en cada frame)
-  CameraX → Detector (LiteRT) → OverlayView → toque del usuario
-                                                    │
-                                                    ▼
-                                          Ficha técnica / Asistente RAG
+EJECUCIÓN EN EL TELÉFONO
+  CameraX → Detector (LiteRT) → OverlayView
+                                     │ toque
+                                     ▼
+                              ChatActivity  ──HTTP──►  backend
+                              (texto y voz)               │
+                                                          ▼
+                                              Gemini + File Search
+                                                          │
+                                                  fichas técnicas .md
 ```
 
-La idea de fondo: **todo el trabajo pesado ocurre una vez, en la nube; el teléfono
-solo ejecuta el resultado.** Entrenar exige una GPU y horas de cómputo; usar el
-modelo ya entrenado son unos milisegundos de CPU.
+La idea de fondo: **el trabajo pesado ocurre una vez, fuera del teléfono.** Entrenar
+exige GPU y horas de cómputo; usar el modelo entrenado son milisegundos de CPU. Y el
+conocimiento del asistente vive en documentos, no en el modelo.
 
 ## Java en lugar de Kotlin
 
 El proyecto venía en Java y se mantuvo. Kotlin es hoy el lenguaje recomendado para
 Android y habría permitido escribir menos código, pero cambiar de lenguaje a mitad de
-un proyecto añade riesgo sin aportar nada al objetivo. Todas las librerías usadas
-funcionan igual en ambos.
+un proyecto añade riesgo sin aportar nada al objetivo.
 
 ## `minSdk 26` (Android 8.0)
 
 El proyecto arrancó con `minSdk 34`, que restringe la app a Android 14 o superior —
-una fracción pequeña de los teléfonos reales. Nada de lo que se usa lo exige, así que
-se bajó a 26 para cubrir prácticamente cualquier dispositivo actual.
+una fracción pequeña de los teléfonos reales. Nada de lo que se usa lo exige.
 
 ## CameraX en lugar de Camera2
 
-La API `Camera2` de Android es potente pero brutalmente verbosa: sesiones, hilos,
-superficies y estados que hay que gestionar a mano, con comportamientos distintos
-según fabricante.
-
-CameraX es una capa encima que resuelve eso:
+La API `Camera2` es potente pero brutalmente verbosa: sesiones, hilos, superficies y
+estados a mano, con comportamientos distintos según fabricante.
 
 | Componente | Para qué |
 |---|---|
@@ -136,86 +136,118 @@ CameraX es una capa encima que resuelve eso:
 | `ImageAnalysis` | Entrega cada frame como dato para procesar |
 | `ProcessCameraProvider` | Ata la cámara al ciclo de vida de la Activity |
 
-Ese último punto es más importante de lo que parece: al vincular la cámara al ciclo
-de vida, se libera sola cuando la app pasa a segundo plano. Con Camera2 ese es un
-origen clásico de fugas de recursos y de cámaras que se quedan bloqueadas.
+Ese último punto importa más de lo que parece: la cámara se libera sola al pasar la
+app a segundo plano. Con Camera2 es un origen clásico de fugas.
 
-Dos ajustes concretos que hace la app:
+Dos ajustes concretos:
 
 - **`STRATEGY_KEEP_ONLY_LATEST`** — si el modelo tarda más de lo que la cámara produce
-  frames, se descartan los intermedios en vez de acumular una cola. Sin esto, el
-  retraso crece hasta que la app parece congelada.
-- **`OUTPUT_IMAGE_FORMAT_RGBA_8888`** — pedir los frames ya en RGBA evita tener que
-  convertir manualmente desde YUV, que es un algoritmo largo y propenso a errores.
+  frames, se descartan los intermedios en vez de acumular cola.
+- **`OUTPUT_IMAGE_FORMAT_RGBA_8888`** — evita convertir manualmente desde YUV.
 
 ## LiteRT (antes TensorFlow Lite)
 
-Es el motor que ejecuta la red neuronal dentro del teléfono. Dos decisiones aquí:
+El motor que ejecuta la red neuronal dentro del teléfono.
 
-**Por qué en el dispositivo y no en un servidor.** Enviar cada frame a un servidor
-sería imposible en tiempo real: latencia de red, consumo de datos y dependencia de la
-conexión. El laboratorio puede no tener buena señal. En local, la inferencia son
+**Por qué en el dispositivo y no en un servidor.** Enviar cada frame por red sería
+imposible en tiempo real, y el laboratorio puede no tener buena señal. En local son
 milisegundos y funciona sin internet.
 
-**Por qué el intérprete directo y no la Task Library.** La Task Library trae clases
-listas (`ObjectDetector`) que esperan un formato de salida concreto. YOLO26 no lo
-cumple: devuelve un tensor propio. Con el intérprete directo se lee el tensor tal cual
-y se interpreta como haga falta, que es justo lo que necesita este modelo.
+**Por qué el intérprete directo y no la Task Library.** La Task Library espera un
+formato de salida concreto que YOLO26 no cumple. Con el intérprete directo se lee el
+tensor tal cual.
 
 ## Modelo *nano* a 640×640, sin cuantizar
 
-- **Nano** es la variante más pequeña de YOLO26 (2.4M parámetros). Las mayores son más
-  precisas pero varias veces más lentas; en un móvil, la velocidad manda.
-- **640×640** es la resolución estándar de entrenamiento de YOLO. Bajar a 320 duplica
-  la velocidad a costa de perder objetos pequeños o lejanos.
-- **Sin cuantizar (float32)** no fue una elección sino una consecuencia: la
-  cuantización int8 rompe la exportación de YOLO26 (ver Parte 3). El modelo pesa 9 MB
-  en vez de ~3 MB.
+- **Nano** (2.4M parámetros) es la variante más pequeña. Las mayores son más precisas
+  pero varias veces más lentas.
+- **640×640** es la resolución de entrenamiento estándar de YOLO.
+- **Sin cuantizar (float32)** no fue elección sino consecuencia: la cuantización int8
+  rompe la exportación de YOLO26 (ver Parte 3). Pesa 9 MB en vez de ~3 MB, y esa es la
+  causa principal del problema de rendimiento documentado abajo.
 
 ## Label Studio para etiquetar
 
 Se evaluó **Roboflow**, más cómodo, pero su plan gratuito **publica el dataset**. Las
 fotos incluyen instalaciones y personas del laboratorio, así que quedó descartado.
 
-Label Studio es open source, corre en local y los datos no salen de la máquina. Su
-limitación: no se conecta con Google Drive (solo S3, GCS, Azure y Redis), así que el
-flujo es descargar de Drive → etiquetar en local → volver a subir el dataset dividido.
+Label Studio es open source y corre en local. Su limitación: no se conecta con Google
+Drive (solo S3, GCS, Azure y Redis), así que el flujo es descargar de Drive →
+etiquetar en local → volver a subir el dataset dividido.
 
 ## Google Colab para entrenar
 
-Entrenar una red neuronal necesita una GPU NVIDIA. El equipo de desarrollo solo tiene
-gráficos integrados AMD, donde el entrenamiento pasaría de minutos a muchas horas.
-Colab ofrece una GPU **Tesla T4** gratuita: el entrenamiento completo tardó **18
-minutos**.
+Entrenar necesita GPU NVIDIA. El equipo de desarrollo solo tiene gráficos integrados
+AMD. Colab ofrece una **Tesla T4** gratuita: el entrenamiento completo tardó **18
+minutos**. Los checkpoints se guardan en Drive para que una desconexión no cueste el
+entrenamiento entero.
 
-Los checkpoints se guardan directamente en Drive para que una desconexión de Colab no
-cueste el entrenamiento entero.
+## Gemini con File Search para el asistente
 
-## Retrofit para el asistente
+**Decisión: RAG gestionado, no propio.**
 
-Cliente HTTP estándar en Android. Convierte una interfaz Java en llamadas de red y
-serializa el JSON automáticamente con Gson. Alternativas como `HttpURLConnection`
-obligan a escribir a mano el hilo, el parseo y el manejo de errores.
+Se implementó primero un RAG a mano (trocear documentos, calcular embeddings, guardar
+vectores, similitud coseno). Funcionaba, pero se descartó: para siete documentos de
+una página no aporta nada frente a lo que ya resuelve la herramienta del proveedor.
 
-**El asistente no llamará al proveedor de IA directamente desde la app.** La API key
-acabaría dentro del APK, y extraerla es trivial. Hará falta un servicio intermedio
-que guarde la clave.
+Con **File Search**, Google trocea, calcula embeddings, indexa y busca. El código se
+reduce a subir las fichas y activar la herramienta en cada llamada.
+
+Se eligió **Gemini** sobre OpenAI por razones prácticas: la clave ya estaba creada,
+hay capa gratuita más 20 USD en créditos, y OpenAI cobra desde la primera llamada. La
+ventaja de OpenAI —gestionar el almacén desde su interfaz— equivale a un script que se
+ejecuta una vez.
+
+**Modelo: `gemini-3.6-flash`.** Los *flash* son los rápidos y económicos; para
+responder sobre fichas técnicas no hace falta un *pro*.
+
+## Backend propio entre la app y Gemini
+
+**La app no llama a Gemini directamente.** La API key acabaría dentro del APK y
+extraerla es trivial: basta descomprimirlo. El servicio intermedio (FastAPI) es el
+único que conoce la clave.
+
+Ese servicio es **temporal**, una prueba de concepto para validar el enfoque. Ver
+[`../backend/ESTADO.md`](../backend/ESTADO.md).
+
+## Retrofit para hablar con el backend
+
+Convierte una interfaz Java en llamadas de red y serializa el JSON con Gson.
+`HttpURLConnection` obligaría a escribir a mano el hilo, el parseo y los errores.
+
+## Voz: `SpeechRecognizer` y `TextToSpeech` de Android
+
+**Decisión: reconocimiento en el dispositivo, no en el servidor.**
+
+Son nativos, gratuitos y funcionan sin cambios en el backend. La alternativa —enviar
+el audio a un modelo de transcripción— daría mejor calidad con términos técnicos como
+"AQUASEARCHER" o "digestibilidad", pero añade latencia, coste y dependencia de la
+conexión.
+
+La voz quedó como una capa fina sobre el chat: mismo endpoint, misma lógica. Por eso
+soportar texto **y** voz no duplicó el trabajo.
 
 ## Markdown para las fichas técnicas
 
-Las fichas de los siete equipos están en `.md` y no en una base de datos ni en JSON
-por tres razones: se leen bien sin herramientas, se muestran fácil en la app, y —la
-decisiva— **se trocean de forma natural por secciones** (`## Seguridad`,
-`## Procedimiento`), que es exactamente como conviene fragmentar documentos para un
-sistema RAG.
+Las fichas están en `.md` y no en base de datos ni JSON por tres razones: se leen sin
+herramientas, se muestran fácil en la app, y —la decisiva— **se trocean de forma
+natural por secciones** (`## Seguridad`, `## Procedimiento`), que es como conviene
+fragmentar documentos para RAG.
+
+## RecyclerView y core-splashscreen
+
+- **RecyclerView** para la lista de mensajes: recicla las vistas al desplazarse, en
+  lugar de mantener una por mensaje.
+- **core-splashscreen** para la pantalla de presentación: la API oficial de splash es
+  de Android 12, y esta librería la lleva hasta Android 6.
 
 ## Decisiones aún abiertas
 
 | Tema | Estado |
 |---|---|
-| RAG gestionado (File Search) vs implementación propia | Sin decidir |
-| Proveedor: Gemini u OpenAI | Sin decidir |
-| Speech-to-Text: `SpeechRecognizer` de Android vs enviar audio al servidor | Sin decidir |
+| Dónde se despliega el backend definitivo | Sin decidir |
+| Autenticación de la app contra el servicio | Sin decidir |
+| Reexportar el modelo a 320×320 por rendimiento | Pendiente de medir |
 
 ---
 
@@ -232,8 +264,8 @@ Namespace 'org.tensorflow.lite' is used in multiple modules and/or libraries:
 org.tensorflow:tensorflow-lite, tensorflow-lite-gpu, tensorflow-lite-api
 ```
 
-Los tres artefactos comparten namespace y las versiones nuevas de AGP lo rechazan.
-La solución es LiteRT, el sucesor oficial del mismo runtime mantenido por Google:
+Los tres artefactos comparten namespace y las versiones nuevas de AGP lo rechazan. La
+solución es LiteRT, sucesor oficial del mismo runtime:
 
 ```groovy
 implementation 'com.google.ai.edge.litert:litert:1.4.2'
@@ -246,12 +278,11 @@ Conserva el paquete `org.tensorflow.lite`, así que el código Java es idéntico
 
 La 1.3.4 incluye `libimage_processing_util_jni.so` sin alineación de 16 KB, lo que
 dispara un aviso de incompatibilidad en dispositivos e imágenes con página de 16 KB
-(y será un requisito de Google Play). La 1.4.2 lo corrige.
+(y será requisito de Google Play). La 1.4.2 lo corrige.
 
 ## `minSdk` 34 → 26
 
-Con `minSdk 34` la app solo funcionaría en Android 14 o superior. Nada de lo que se
-usa lo requiere.
+Con `minSdk 34` la app solo funcionaría en Android 14 o superior.
 
 ## El post-procesado resultó más simple de lo previsto
 
@@ -264,8 +295,8 @@ end-to-end de YOLO26: **no hay que implementar NMS en Java**.
 
 El conversor LiteRT-Torch preserva el orden de PyTorch: la entrada es
 `[1, 3, 640, 640]`, no `[1, 640, 640, 3]`. El buffer debe llenarse **por planos
-completos** (todos los R, luego los G, luego los B), no píxel a píxel. `Detector.java`
-detecta ambas convenciones al cargar el modelo y actúa en consecuencia.
+completos** (todos los R, luego los G, luego los B), no píxel a píxel.
+`Detector.java` detecta ambas convenciones al cargar el modelo.
 
 ## Trampas al exportar a TFLite (Ultralytics 8.4.131)
 
@@ -274,25 +305,97 @@ Dos fallos reproducibles, ambos con el mismo síntoma (`KeyError: 'feats'`):
 1. **No exportes un modelo que ya pasó por `.val()` o `.predict()`.** Hay que cargar
    una instancia nueva desde `best.pt`.
 2. **No uses `int8=True`.** La cuantización desactiva la rama end-to-end y rompe la
-   exportación. Sin cuantizar, el modelo pesa ~9 MB en float32 en vez de ~3 MB.
+   exportación.
 
 Además, `format='tflite'` está obsoleto desde la 8.4.83; se usa `format='litert'`.
 
 ## Las fotos venían en HEIC
 
-144 de las 340 fotos originales estaban en formato HEIC (iPhone), que ni Label Studio
-ni YOLO pueden leer. Dos clases completas (`ankom_daisy_incubator` y `ankom_estufa`)
-eran 100 % HEIC: sin convertirlas, esas clases sencillamente no habrían existido para
-el modelo, y sin dar ningún error.
+144 de las 340 fotos originales estaban en HEIC (iPhone), formato que ni Label Studio
+ni YOLO leen. Dos clases completas (`ankom_daisy_incubator` y `ankom_estufa`) eran
+100 % HEIC: sin convertirlas, esas clases no habrían existido para el modelo, y sin
+dar ningún error.
 
 Se añadió `ml/scripts/prepare_images.py`, que además aplica la rotación EXIF (sin ella
 el modelo entrena con imágenes giradas 90°) y reduce a 1280 px (de 1.2 GB a 73 MB).
 
+## `gemini-2.5-flash` retirado para cuentas nuevas
+
+Aparece en el listado de modelos pero devuelve 404 al invocarlo:
+
+```
+This model models/gemini-2.5-flash is no longer available to new users.
+Please update your code to use models/gemini-3.6-flash
+```
+
+Esto explicó también por qué el Playground de AI Studio fallaba con "permission
+denied": estaba seleccionado ese modelo.
+
+**Lección práctica:** que un modelo aparezca en `/models` no significa que tu cuenta
+pueda usarlo. Y `Invoke-RestMethod` de PowerShell oculta el cuerpo del error — con
+`curl.exe` sí se ve el mensaje real, que es donde estaba la explicación.
+
+## El SDK `google-genai` debe ser 2.20.0 o superior
+
+Las versiones anteriores no tienen `file_search_stores` y fallan con `AttributeError`.
+
+## Las fichas técnicas ya existían
+
+Se generaron plantillas vacías antes de descubrir que había siete instructivos en
+Word en `documentacion/fichas/MOVIL APP EXAM/`, elaborados por la Ing. Nathaly Mera
+Macías (Técnico de Laboratorio). Las fichas `.md` se rehicieron con ese contenido
+real, y de paso se identificó el equipo MEMMERT: es una **Estufa Universal**, series
+UN/UF e IN/IF.
+
+Eso reveló algo relevante para la detección: **hay dos estufas** en el laboratorio, la
+ANKOM de secado y la MEMMERT universal. Son visualmente parecidas, y la ANKOM es
+justo la clase con menos fotos de entrenamiento.
+
+## Rendimiento en dispositivos lentos
+
+Medición real en un teléfono de gama baja: **0.8 FPS, 1305 ms por inferencia**. En un
+teléfono moderno un *nano* a 640 px debería estar entre 100 y 300 ms.
+
+Causa principal: el modelo es **float32** porque la cuantización int8 rompe la
+exportación de YOLO26. Un int8 sería unas tres veces más rápido.
+
+Medidas aplicadas:
+
+1. **Delegado GPU** con respaldo automático a CPU. El estado en pantalla indica cuál
+   está en uso, para poder diagnosticarlo sin conectar el depurador.
+2. **Array de píxeles reutilizado.** Se creaban 409.600 enteros por frame — unos 16 MB
+   por segundo de basura. En un teléfono lento, las pausas del recolector pesan más
+   que la propia inferencia.
+
+Pendiente de medir: reexportar a **320×320**, cuatro veces menos píxeles. No requiere
+reentrenar, solo volver a exportar desde `best.pt`, y `Detector` lee el tamaño del
+propio modelo — no hay que tocar Android.
+
+## Identidad visual: icono y pantalla de presentación
+
+El logo se entregó como JPEG de 2048×2048 con fondo degradado, no vectorial.
+
+**No se convirtió a SVG**, por dos motivos: Android no usa archivos `.svg` (usa vector
+drawables en XML), y el logo tiene degradados, textura granulada y un filete dorado
+fino que un vectorizado automático reproduce mal y con más peso que el PNG.
+
+Se generó un **icono adaptativo** en las cinco densidades, con el logo al 62 % del
+lienzo: el sistema recorta el icono según el launcher, y solo el 66 % central está
+garantizado.
+
+El fondo se quitó con un **relleno por inundación desde los bordes**, no con un umbral
+global de blanco: los blancos del interior del matraz son parte del dibujo y un
+umbral los habría vaciado.
+
+La **pantalla de presentación se mantiene hasta que el modelo termina de cargar**. No
+es decoración: tapa una espera real que en dispositivos lentos se nota. Si el modelo
+falla, la presentación desaparece igual, para no dejar al usuario ante un logo eterno.
+
 ## Limitaciones conocidas del dataset
 
-306 imágenes con 322 cajas: aproximadamente **una caja por foto**. Varias fotos son
-tomas abiertas donde aparecen varios equipos, y los no etiquetados le enseñan al
-modelo que ese aparato es "fondo".
+306 imágenes con 322 cajas: aproximadamente **una caja por foto**. Varias son tomas
+abiertas donde aparecen varios equipos, y los no etiquetados le enseñan al modelo que
+ese aparato es "fondo".
 
 `ankom_estufa` tiene 7 imágenes de entrenamiento y 1 de validación: no es detectable
 de forma fiable, y su métrica no significa nada.
@@ -301,8 +404,11 @@ El mAP50 global de 0.985 está inflado: muchas fotos son ráfagas casi idéntica
 repartidas entre entrenamiento y validación, así que el modelo reconoce imágenes casi
 vistas en vez de generalizar.
 
+En pruebas reales sí detecta correctamente varios equipos a la vez (Ohaus PR224 85 %,
+contador de colonias 82 %, AQUASEARCHER 96 %), con las cajas bien posicionadas.
+
 ## Pendiente
 
-- Ficha técnica de cada equipo al tocar una detección.
-- Asistente RAG por chat y por voz.
-- Completar el contenido de las siete fichas técnicas.
+- Servicio definitivo del asistente: desplegado, con HTTPS y autenticación.
+- Pantalla de ficha técnica dentro de la app (hoy el toque abre directamente el chat).
+- Más fotos de `ankom_estufa` y etiquetado de todos los equipos en cada foto.

@@ -46,15 +46,20 @@ modelo, y detecta automáticamente si la entrada es NCHW o NHWC.
 | `ml/` | Pipeline de datos y entrenamiento |
 | `ml/train_yolo26.ipynb` | Notebook de Colab: entrenar, validar, exportar |
 | `ml/scripts/` | Preparación de imágenes, división y verificación del dataset |
-| `documentacion/` | Decisiones técnicas |
+| `backend/` | Servicio del asistente RAG (temporal) |
+| `documentacion/` | Decisiones técnicas y explicación del código |
+| `documentacion/fichas/` | Fichas técnicas de los 7 equipos |
 
 Las imágenes del laboratorio y el dataset **no están versionados** aquí: viven en
 Google Drive. Ver [`ml/README.md`](ml/README.md) para el flujo completo.
 
 ## Stack
 
-- **Android**: Java, minSdk 26, CameraX 1.4.2, LiteRT 1.4.2, Retrofit 2.11
+- **Android**: Java, minSdk 26, CameraX 1.4.2, LiteRT 1.4.2, Retrofit 2.11,
+  RecyclerView, core-splashscreen
 - **Modelo**: YOLO26n (Ultralytics), 640×640, float32, ~9 MB
+- **Asistente**: Gemini `gemini-3.6-flash` con File Search (RAG gestionado),
+  backend FastAPI, voz con `SpeechRecognizer` y `TextToSpeech` de Android
 - **Etiquetado**: Label Studio
 
 ## Estado
@@ -62,8 +67,11 @@ Google Drive. Ver [`ml/README.md`](ml/README.md) para el flujo completo.
 - [x] Pipeline de datos y entrenamiento reproducible
 - [x] Modelo entrenado y exportado a TFLite
 - [x] Detección en vivo con CameraX y dibujo de cajas
-- [ ] Ficha técnica de cada equipo al tocar una detección
-- [ ] Asistente RAG por chat y voz
+- [x] Fichas técnicas de los 7 equipos
+- [x] Asistente RAG por chat y voz — **backend temporal**, ver
+      [`backend/ESTADO.md`](backend/ESTADO.md)
+- [ ] Servicio definitivo del asistente (desplegado, con HTTPS y autenticación)
+- [ ] Pantalla de ficha técnica dentro de la app
 
 ## Limitaciones conocidas
 

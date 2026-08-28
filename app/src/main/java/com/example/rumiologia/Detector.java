@@ -14,6 +14,8 @@ import androidx.annotation.NonNull;
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.Tensor;
+import org.tensorflow.lite.gpu.CompatibilityList;
+import org.tensorflow.lite.gpu.GpuDelegate;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -71,6 +73,21 @@ public class Detector {
     private final Interpreter interprete;
     private final List<String> etiquetas;
 
+    /** Delegado GPU, si el dispositivo lo soporta. Hay que cerrarlo a mano. */
+    private GpuDelegate delegadoGpu;
+
+    /** true si la inferencia corre en GPU; se muestra en pantalla para diagnosticar. */
+    private final boolean usandoGpu;
+
+    /**
+     * Array de pixeles reutilizado entre frames.
+     *
+     * <p>Son 409.600 enteros (640x640). Crearlo en cada frame generaba unos 16 MB
+     * de basura por segundo, y en dispositivos lentos las pausas del recolector se
+     * notan mas que la propia inferencia.
+     */
+    private final int[] pixeles;
+
     private final int anchoEntrada;
     private final int altoEntrada;
     private final boolean entradaNCHW;
@@ -102,9 +119,39 @@ public class Detector {
 
         this.etiquetas = cargarEtiquetas(context, etiquetasAsset);
 
-        Interpreter.Options opciones = new Interpreter.Options();
-        opciones.setNumThreads(hilos);
-        this.interprete = new Interpreter(cargarModelo(context, modeloAsset), opciones);
+        MappedByteBuffer modelo = cargarModelo(context, modeloAsset);
+
+        // Se intenta GPU primero: con modelos float32 como este suele ser varias
+        // veces mas rapida que la CPU. No todos los dispositivos la soportan, y en
+        // algunos falla al crear el interprete, asi que siempre hay respaldo a CPU.
+        Interpreter interpretePrueba = null;
+        boolean enGpu = false;
+        try {
+            CompatibilityList compatibilidad = new CompatibilityList();
+            if (compatibilidad.isDelegateSupportedOnThisDevice()) {
+                delegadoGpu = new GpuDelegate(compatibilidad.getBestOptionsForThisDevice());
+                Interpreter.Options opcionesGpu = new Interpreter.Options();
+                opcionesGpu.addDelegate(delegadoGpu);
+                interpretePrueba = new Interpreter(modelo, opcionesGpu);
+                enGpu = true;
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "GPU no disponible, se usara CPU: " + t.getMessage());
+            if (delegadoGpu != null) {
+                delegadoGpu.close();
+                delegadoGpu = null;
+            }
+            interpretePrueba = null;
+        }
+
+        if (interpretePrueba == null) {
+            Interpreter.Options opciones = new Interpreter.Options();
+            opciones.setNumThreads(hilos);
+            interpretePrueba = new Interpreter(modelo, opciones);
+        }
+
+        this.interprete = interpretePrueba;
+        this.usandoGpu = enGpu;
 
         Tensor entrada = interprete.getInputTensor(0);
         int[] formaEntrada = entrada.shape();
@@ -141,6 +188,7 @@ public class Detector {
                 .allocateDirect(numElementos(formaSalida) * bytesPorElemento(tipoSalida))
                 .order(ByteOrder.nativeOrder());
 
+        this.pixeles = new int[anchoEntrada * altoEntrada];
         this.lienzoEntrada = Bitmap.createBitmap(anchoEntrada, altoEntrada, Bitmap.Config.ARGB_8888);
         this.canvasEntrada = new Canvas(lienzoEntrada);
         this.pinturaRelleno.setColor(GRIS_RELLENO);
@@ -151,7 +199,8 @@ public class Detector {
                 + " (" + tipoEntrada + "), salida " + Arrays.toString(formaSalida)
                 + " (" + tipoSalida + "), modo "
                 + (salidaEndToEnd ? "end-to-end (sin NMS)" : "crudo (con NMS)")
-                + ", " + etiquetas.size() + " clases");
+                + ", " + etiquetas.size() + " clases"
+                + ", ejecutando en " + (usandoGpu ? "GPU" : "CPU"));
     }
 
     /** Comprueba si el modelo esta presente antes de intentar cargarlo. */
@@ -220,7 +269,6 @@ public class Detector {
     // ---------------------------------------------------------------- entrada
 
     private void llenarBufferEntrada(Bitmap bitmap) {
-        int[] pixeles = new int[anchoEntrada * altoEntrada];
         bitmap.getPixels(pixeles, 0, anchoEntrada, 0, 0, anchoEntrada, altoEntrada);
 
         bufferEntrada.rewind();
@@ -478,12 +526,15 @@ public class Detector {
 
     public String describirModelo() {
         return anchoEntrada + "x" + altoEntrada + " " + (entradaNCHW ? "NCHW" : "NHWC")
-                + " " + tipoEntrada
+                + " " + (usandoGpu ? "GPU" : "CPU") + " " + tipoEntrada
                 + " | salida " + Arrays.toString(formaSalida)
                 + (salidaEndToEnd ? " e2e" : " crudo");
     }
 
     public void close() {
         interprete.close();
+        if (delegadoGpu != null) {
+            delegadoGpu.close();   // recursos nativos: el GC de Java no los libera
+        }
     }
 }

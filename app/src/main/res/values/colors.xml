@@ -17,4 +17,18 @@
         <item>#911EB4</item>
         <item>#46F0F0</item>
     </array>
+
+    <!-- Identidad de la app: verde del logo -->
+    <color name="ic_launcher_background">#FFFFFFFF</color>
+    <color name="verde_rumiologia">#FF14603A</color>
+    <color name="splash_fondo">#FFFFFFFF</color>
+
+    <!-- Asistente RAG -->
+    <color name="chat_fondo">#FF121417</color>
+    <color name="chat_cabecera">#FF1E2227</color>
+    <color name="chat_subtitulo">#FF9AA3AD</color>
+    <color name="chat_icono">#FFCBD3DB</color>
+    <color name="burbuja_usuario">#FF2E5AAC</color>
+    <color name="burbuja_asistente">#FF2A2F36</color>
+    <color name="burbuja_error">#FF7A2E2E</color>
 </resources>

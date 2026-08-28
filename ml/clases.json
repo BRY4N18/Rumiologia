@@ -11,44 +11,58 @@
     {
       "id": 0,
       "slug": "ankom_200_fiber_analyzer",
-      "nombre": "ANKOM 200 Fiber Analyzer",
-      "carpetas": ["ANKOM 200 Fiber Analyzer"]
+      "nombre": "Analizador de Fibra ANKOM 200",
+      "carpetas": [
+        "ANKOM 200 Fiber Analyzer"
+      ]
     },
     {
       "id": 1,
       "slug": "ankom_daisy_incubator",
-      "nombre": "ANKOM DAISY Incubator",
-      "carpetas": ["ANKOM DAISY Incubator"]
+      "nombre": "Incubadora ANKOM DAISY",
+      "carpetas": [
+        "ANKOM DAISY Incubator"
+      ]
     },
     {
       "id": 2,
       "slug": "ankom_estufa",
-      "nombre": "ANKOM Estufa",
-      "carpetas": ["ANKOM ESTUFA"]
+      "nombre": "Estufa de Secado ANKOM",
+      "carpetas": [
+        "ANKOM ESTUFA"
+      ]
     },
     {
       "id": 3,
       "slug": "aquasearcher_ab33m1",
-      "nombre": "AQUASEARCHER AB33M1 (OHAUS)",
-      "carpetas": ["AQUASEARCHER™ AB33M1 de_OHAUS"]
+      "nombre": "Medidor Multiparámetro AQUASEARCHER AB33M1",
+      "carpetas": [
+        "AQUASEARCHER™ AB33M1 de_OHAUS"
+      ]
     },
     {
       "id": 4,
       "slug": "contador_de_colonias",
-      "nombre": "Contador de colonias",
-      "carpetas": ["Contador de colonias"]
+      "nombre": "Contador de Colonias",
+      "carpetas": [
+        "Contador de colonias"
+      ]
     },
     {
       "id": 5,
       "slug": "memmert",
-      "nombre": "MEMMERT",
-      "carpetas": ["MEMMERT"]
+      "nombre": "Estufa Universal MEMMERT",
+      "carpetas": [
+        "MEMMERT"
+      ]
     },
     {
       "id": 6,
       "slug": "ohaus_pr224",
-      "nombre": "Ohaus PR224",
-      "carpetas": ["Ohaus PR224"]
+      "nombre": "Balanza Analítica OHAUS PR224",
+      "carpetas": [
+        "Ohaus PR224"
+      ]
     }
   ]
 }

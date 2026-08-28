@@ -145,6 +145,7 @@ public class OverlayView extends View {
             String texto = String.format(Locale.getDefault(), "%s  %.0f%%",
                     nombreLegible(d.label), d.score * 100);
             float anchoTexto = pincelTexto.measureText(texto);
+            float anchoEtiqueta = anchoTexto + padding * 2;
 
             // La etiqueta va sobre la caja, salvo que no quepa arriba: entonces va dentro.
             float topEtiqueta = rectTemporal.top - altoTexto - padding * 2;
@@ -152,16 +153,26 @@ public class OverlayView extends View {
                 topEtiqueta = rectTemporal.top;
             }
 
+            // Un equipo pegado al borde de la pantalla dejaria su etiqueta cortada:
+            // se desplaza hacia dentro para que el nombre siempre se lea completo.
+            float izquierdaEtiqueta = rectTemporal.left;
+            if (izquierdaEtiqueta + anchoEtiqueta > getWidth()) {
+                izquierdaEtiqueta = getWidth() - anchoEtiqueta;
+            }
+            if (izquierdaEtiqueta < 0) {
+                izquierdaEtiqueta = 0;
+            }
+
             pincelFondoTexto.setColor(color);
             canvas.drawRect(
-                    rectTemporal.left,
+                    izquierdaEtiqueta,
                     topEtiqueta,
-                    rectTemporal.left + anchoTexto + padding * 2,
+                    izquierdaEtiqueta + anchoEtiqueta,
                     topEtiqueta + altoTexto + padding * 2,
                     pincelFondoTexto);
 
             canvas.drawText(texto,
-                    rectTemporal.left + padding,
+                    izquierdaEtiqueta + padding,
                     topEtiqueta + padding - fm.ascent,
                     pincelTexto);
         }

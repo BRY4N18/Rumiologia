@@ -5,4 +5,25 @@
     <string name="estado_sin_modelo">Modelo no encontrado: coloca model.tflite en assets/</string>
     <string name="permiso_camara_necesario">Se necesita permiso de cámara para detectar los equipos</string>
     <string name="error_camara">No se pudo abrir la cámara</string>
+
+    <!-- Asistente RAG -->
+    <string name="chat_titulo">Asistente del laboratorio</string>
+    <string name="chat_general">Pregunta sobre cualquier equipo</string>
+    <string name="chat_sobre_equipo">Sobre: %1$s</string>
+    <string name="chat_hint">Escribe tu pregunta…</string>
+    <string name="chat_escuchando">Escuchando…</string>
+    <string name="chat_escribiendo">Escribiendo…</string>
+    <string name="chat_fuentes">Fuente: %1$s</string>
+    <string name="chat_bienvenida">Puedo responderte sobre los equipos del laboratorio: qué son, cómo se operan y qué precauciones tienen. ¿Qué necesitas saber?</string>
+    <string name="chat_bienvenida_equipo">Puedo responderte sobre %1$s: cómo se opera, para qué se usa y qué precauciones tiene. ¿Qué necesitas saber?</string>
+    <string name="chat_error_servidor">El servidor respondió con error %1$d</string>
+    <string name="chat_error_red">No se pudo conectar con %1$s. Comprueba que el servidor esté corriendo.</string>
+    <string name="chat_error_voz">No se pudo reconocer la voz (error %1$d)</string>
+    <string name="chat_permiso_audio">Se necesita permiso de micrófono para dictar</string>
+    <string name="chat_sin_reconocimiento">Este dispositivo no tiene reconocimiento de voz</string>
+    <string name="chat_voz_activada">Lectura en voz alta activada</string>
+    <string name="chat_voz_desactivada">Lectura en voz alta desactivada</string>
+    <string name="chat_desc_enviar">Enviar</string>
+    <string name="chat_desc_microfono">Dictar</string>
+    <string name="chat_desc_voz">Leer en voz alta</string>
 </resources>
