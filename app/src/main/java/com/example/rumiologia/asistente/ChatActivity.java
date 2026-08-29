@@ -30,14 +30,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.rumiologia.R;
+import com.example.rumiologia.asistente.ia.AsistenteIA;
+import com.example.rumiologia.asistente.ia.FabricaAsistente;
+import com.example.rumiologia.asistente.ia.RespuestaAsistente;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 /**
  * Pantalla de chat con el asistente del laboratorio.
@@ -81,6 +80,9 @@ public class ChatActivity extends AppCompatActivity {
 
     private String slugEquipo;
     private String nombreEquipo;
+
+    /** Se pide a la fábrica: esta pantalla no sabe qué proveedor hay detrás. */
+    private AsistenteIA asistente;
 
     private SpeechRecognizer reconocedor;
     private TextToSpeech sintetizador;
@@ -132,6 +134,8 @@ public class ChatActivity extends AppCompatActivity {
         botonMicrofono.setOnClickListener(v -> pedirEscucha());
         botonVoz.setOnClickListener(v -> alternarLectura());
 
+        asistente = FabricaAsistente.crear(this);
+
         prepararSintetizador();
         mostrarBienvenida();
     }
@@ -150,41 +154,31 @@ public class ChatActivity extends AppCompatActivity {
     private void enviar(String pregunta) {
         añadir(Mensaje.deUsuario(pregunta));
 
-        // El historial se arma ANTES de meter el marcador de carga, para no
-        // enviarle al backend un turno vacío.
-        List<AsistenteApi.Turno> historial = new ArrayList<>();
+        // El historial se arma ANTES de meter el marcador de carga y excluye la
+        // pregunta actual, que viaja aparte.
+        List<AsistenteIA.Turno> historial = new ArrayList<>();
         for (Mensaje m : mensajes) {
             if (m.cargando || m.origen == Mensaje.Origen.ERROR || m.texto.isEmpty()) {
                 continue;
             }
-            historial.add(new AsistenteApi.Turno(
-                    m.origen == Mensaje.Origen.USUARIO ? "usuario" : "asistente", m.texto));
+            historial.add(new AsistenteIA.Turno(m.origen == Mensaje.Origen.USUARIO, m.texto));
         }
         if (!historial.isEmpty()) {
-            historial.remove(historial.size() - 1);   // la pregunta actual va aparte
+            historial.remove(historial.size() - 1);
         }
 
         Mensaje cargando = Mensaje.cargando();
         añadir(cargando);
         habilitarEntrada(false);
 
-        AsistenteApi.Consulta consulta =
-                new AsistenteApi.Consulta(pregunta, slugEquipo, historial);
-
-        ClienteAsistente.api().preguntar(consulta).enqueue(new Callback<AsistenteApi.Respuesta>() {
+        asistente.preguntar(pregunta, slugEquipo, historial, new AsistenteIA.Respuesta() {
             @Override
-            public void onResponse(@NonNull Call<AsistenteApi.Respuesta> c,
-                                   @NonNull Response<AsistenteApi.Respuesta> r) {
+            public void onExito(RespuestaAsistente resultado) {
                 quitar(cargando);
                 habilitarEntrada(true);
 
-                if (!r.isSuccessful() || r.body() == null) {
-                    mostrarError(getString(R.string.chat_error_servidor, r.code()));
-                    return;
-                }
-
-                Mensaje respuesta = new Mensaje(Mensaje.Origen.ASISTENTE, r.body().respuesta);
-                respuesta.fuentes = r.body().fuentes;
+                Mensaje respuesta = new Mensaje(Mensaje.Origen.ASISTENTE, resultado.texto);
+                respuesta.fuentes = resultado.fuentes;
                 añadir(respuesta);
 
                 if (lecturaEnVozAlta) {
@@ -193,11 +187,10 @@ public class ChatActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(@NonNull Call<AsistenteApi.Respuesta> c, @NonNull Throwable t) {
+            public void onError(String mensaje) {
                 quitar(cargando);
                 habilitarEntrada(true);
-                Log.e(TAG, "Fallo de red", t);
-                mostrarError(getString(R.string.chat_error_red, ClienteAsistente.URL_BASE));
+                mostrarError(mensaje);
             }
         });
     }

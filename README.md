@@ -22,14 +22,16 @@ debe coincidir en `ml/data.yaml`, `ml/clases.json` y `app/src/main/assets/labels
 ## Arquitectura
 
 ```
-CameraX (ImageAnalysis, RGBA_8888)
-    │  frame rotado a la orientación de pantalla
-    ▼
-Detector  ── letterbox a 640×640 ──► LiteRT ──► [1, 300, 6]
-    │                                            x1,y1,x2,y2,score,clase
-    │  coordenadas normalizadas al frame
-    ▼
-OverlayView  ── dibuja cajas y detecta toques
+DETECCIÓN — en el teléfono, sin internet
+  CameraX ──► Detector (LiteRT) ──► [1, 300, 6] ──► OverlayView
+                                                        │ toque
+                                                   ModalEquipo
+                                                   ├── Ficha técnica (PDF)  sin internet
+                                                   └── Chat con Rumi        con internet
+                                                            │
+ASISTENTE — sin servidor propio                             ▼
+  ChatActivity ──► AsistenteIA ──► Gemini + File Search ──► fichas .md
+     (texto y voz)   (interfaz)      (filtrado por equipo)
 ```
 
 El modelo se exporta **end-to-end** (sin NMS): la salida ya son detecciones
@@ -46,7 +48,7 @@ modelo, y detecta automáticamente si la entrada es NCHW o NHWC.
 | `ml/` | Pipeline de datos y entrenamiento |
 | `ml/train_yolo26.ipynb` | Notebook de Colab: entrenar, validar, exportar |
 | `ml/scripts/` | Preparación de imágenes, división y verificación del dataset |
-| `backend/` | Servicio del asistente RAG (temporal) |
+| `gestion_almacenes/` | Herramienta de PC para administrar el almacén de fichas |
 | `documentacion/` | Decisiones técnicas y explicación del código |
 | `documentacion/fichas/` | Fichas técnicas de los 7 equipos |
 
@@ -59,7 +61,8 @@ Google Drive. Ver [`ml/README.md`](ml/README.md) para el flujo completo.
   RecyclerView, core-splashscreen
 - **Modelo**: YOLO26n (Ultralytics), 640×640, float32, ~9 MB
 - **Asistente**: Gemini `gemini-3.6-flash` con File Search (RAG gestionado),
-  backend FastAPI, voz con `SpeechRecognizer` y `TextToSpeech` de Android
+  llamado **directamente desde la app** por REST — sin servidor propio. Voz con
+  `SpeechRecognizer` y `TextToSpeech` de Android
 - **Etiquetado**: Label Studio
 
 ## Estado
@@ -68,10 +71,12 @@ Google Drive. Ver [`ml/README.md`](ml/README.md) para el flujo completo.
 - [x] Modelo entrenado y exportado a TFLite
 - [x] Detección en vivo con CameraX y dibujo de cajas
 - [x] Fichas técnicas de los 7 equipos
-- [x] Asistente RAG por chat y voz — **backend temporal**, ver
-      [`backend/ESTADO.md`](backend/ESTADO.md)
-- [ ] Servicio definitivo del asistente (desplegado, con HTTPS y autenticación)
-- [ ] Pantalla de ficha técnica dentro de la app
+- [x] Asistente RAG por chat y voz, sin servidor propio
+- [x] Búsqueda acotada al equipo detectado (filtro por metadatos)
+- [ ] Clave de la API protegida (hoy va compilada en el APK)
+- [x] Ficha técnica en PDF, disponible sin conexión
+- [x] Identidad visual del proyecto aplicada
+- [ ] Streaming de respuestas
 
 ## Limitaciones conocidas
 

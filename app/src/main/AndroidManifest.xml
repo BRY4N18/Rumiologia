@@ -3,8 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.CAMERA" />
-    <!-- Para el asistente RAG del backend -->
+    <!-- Para el asistente RAG -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Para saber si hay conexion antes de ofrecer el chat con Rumi.
+         Sin declararlo, ConnectivityManager lanza SecurityException. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Para la entrada por voz (Speech-to-Text) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
@@ -20,6 +23,7 @@
     </queries>
 
     <application
+        android:name=".AppRumiologia"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -49,6 +53,21 @@
             android:label="@string/chat_titulo"
             android:parentActivityName=".MainActivity"
             android:windowSoftInputMode="adjustResize" />
+
+        <!--
+          Permite compartir las fichas en PDF con un visor externo. Un archivo de
+          nuestra cache no es accesible para otras apps; el provider genera una URI
+          temporal con permiso de lectura solo para quien abra el documento.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

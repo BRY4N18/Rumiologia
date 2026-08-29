@@ -1,35 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chat con Rumi. Sigue las guías de identidad: cabecera verde institucional,
+  fondo gris muy claro y tarjetas blancas.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/chatRaiz"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/chat_fondo">
 
-    <!-- Cabecera: dice sobre qué equipo se está preguntando -->
+    <!-- Cabecera: quién responde y sobre qué equipo -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:background="@color/chat_cabecera"
         android:paddingHorizontal="16dp"
         android:paddingVertical="12dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/chat_titulo"
-            android:textColor="@android:color/white"
-            android:textSize="17sp"
-            android:textStyle="bold" />
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_rumi"
+            android:background="@drawable/circulo_blanco"
+            android:padding="2dp"
+            android:contentDescription="@string/chat_desc_avatar" />
 
-        <TextView
-            android:id="@+id/chatSubtitulo"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:textColor="@color/chat_subtitulo"
-            android:textSize="13sp" />
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chat_titulo"
+                android:textColor="@android:color/white"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/chatSubtitulo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/chat_subtitulo"
+                android:textSize="13sp" />
+        </LinearLayout>
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -38,7 +62,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingVertical="8dp" />
+        android:paddingVertical="10dp" />
 
     <!-- Barra de entrada: escribir, dictar y activar la lectura en voz alta -->
     <LinearLayout
@@ -46,9 +70,10 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="@color/chat_cabecera"
+        android:background="@color/chat_barra_entrada"
+        android:elevation="8dp"
         android:paddingHorizontal="8dp"
-        android:paddingVertical="6dp">
+        android:paddingVertical="8dp">
 
         <ImageButton
             android:id="@+id/botonVoz"
@@ -57,22 +82,23 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/chat_desc_voz"
             android:src="@android:drawable/ic_lock_silent_mode_off"
-            app:tint="@color/chat_icono"
-            xmlns:app="http://schemas.android.com/apk/res-auto" />
+            app:tint="@color/chat_icono" />
 
         <EditText
             android:id="@+id/entradaTexto"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@drawable/burbuja_asistente"
+            android:background="@drawable/campo_entrada"
             android:hint="@string/chat_hint"
             android:importantForAutofill="no"
             android:inputType="textCapSentences|textMultiLine"
             android:maxLines="4"
             android:minHeight="44dp"
-            android:textColor="@android:color/white"
-            android:textColorHint="@color/chat_subtitulo"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="10dp"
+            android:textColor="@color/texto_principal"
+            android:textColorHint="@color/texto_secundario"
             android:textSize="15sp" />
 
         <ImageButton
@@ -82,8 +108,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/chat_desc_microfono"
             android:src="@android:drawable/ic_btn_speak_now"
-            app:tint="@color/chat_icono"
-            xmlns:app="http://schemas.android.com/apk/res-auto" />
+            app:tint="@color/chat_icono" />
 
         <ImageButton
             android:id="@+id/botonEnviar"
@@ -92,8 +117,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/chat_desc_enviar"
             android:src="@android:drawable/ic_menu_send"
-            app:tint="@color/chat_icono"
-            xmlns:app="http://schemas.android.com/apk/res-auto" />
+            app:tint="@color/verde_institucional" />
     </LinearLayout>
 
 </LinearLayout>

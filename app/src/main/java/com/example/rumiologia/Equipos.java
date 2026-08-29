@@ -12,7 +12,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,8 +47,16 @@ public final class Equipos {
         return nombre != null ? nombre : slug;
     }
 
+    /** Todos los slugs conocidos, en el orden de clases.json. */
+    public static synchronized List<String> slugs(@NonNull Context contexto) {
+        if (nombres == null) {
+            nombres = cargar(contexto);
+        }
+        return new ArrayList<>(nombres.keySet());
+    }
+
     private static Map<String, String> cargar(Context contexto) {
-        Map<String, String> mapa = new HashMap<>();
+        Map<String, String> mapa = new java.util.LinkedHashMap<>();
         try (InputStream in = contexto.getAssets().open(ASSET)) {
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             byte[] trozo = new byte[4096];

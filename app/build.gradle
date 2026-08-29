@@ -2,6 +2,16 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
+// La clave de la API se lee de local.properties, que NO va al repositorio.
+// Sigue acabando dentro del APK: es una decision temporal, documentada en
+// documentacion/DecisionesMovil.md junto al plan de moverla a Supabase.
+def propiedadesLocales = new Properties()
+def archivoLocal = rootProject.file("local.properties")
+if (archivoLocal.exists()) {
+    archivoLocal.withInputStream { propiedadesLocales.load(it) }
+}
+def claveGemini = propiedadesLocales.getProperty("GEMINI_API_KEY", "")
+
 android {
     namespace 'com.example.rumiologia'
     compileSdk {
@@ -12,10 +22,16 @@ android {
         applicationId "com.example.rumiologia"
         minSdk 26
         targetSdk 37
-        versionCode 3
-        versionName "1.2-logo"
+        versionCode 9
+        versionName "1.5.3"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField "String", "GEMINI_API_KEY", "\"${claveGemini}\""
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {

@@ -16,6 +16,28 @@
       cargar, asi que el tiempo de espera se llena con el logo en lugar de con
       una camara sin detecciones.
     -->
+    <!--
+      Tema propio de la hoja inferior.
+
+      NO es opcional: MainActivity arranca con Theme.Rumiologia.Splash, cuyo padre
+      (Theme.SplashScreen) no es un tema Material. Los componentes de Material
+      validan eso al inflarse y lanzan "The style on this component requires your
+      app theme to be Theme.MaterialComponents (or a descendant)", cerrando la app.
+
+      Dandole su propio tema, el modal deja de depender del de la Activity.
+
+      Tiene que ser un tema COMPLETO (Theme.Material3.*), no un ThemeOverlay: un
+      overlay se aplica encima de un tema Material y da por hechos sus atributos.
+      Si la base no es Material, el overlay no basta y el fallo persiste.
+    -->
+    <style name="Theme.Rumiologia.BottomSheet" parent="Theme.Material3.DayNight.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Rumiologia.BottomSheet.Modal</item>
+    </style>
+
+    <style name="Rumiologia.BottomSheet.Modal" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
     <style name="Theme.Rumiologia.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_fondo</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/logo_splash</item>

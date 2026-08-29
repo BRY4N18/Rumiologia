@@ -55,6 +55,6 @@ ml/imagenes_listas/
 .DS_Store
 Thumbs.db
 
-# Backend del asistente RAG
-backend/.env
-backend/__pycache__/
+# Gestion de almacenes (herramienta de administracion en el PC)
+gestion_almacenes/.env
+gestion_almacenes/__pycache__/

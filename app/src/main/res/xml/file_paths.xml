@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Rutas que el FileProvider puede compartir con otras apps.
+
+  Solo la subcarpeta 'fichas' de la cache: ahi se copian los PDF antes de abrirlos
+  con un visor externo. No se expone nada mas del almacenamiento de la app.
+-->
+<paths>
+    <cache-path name="fichas" path="fichas/" />
+</paths>

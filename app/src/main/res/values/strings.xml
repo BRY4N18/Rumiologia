@@ -7,15 +7,15 @@
     <string name="error_camara">No se pudo abrir la cámara</string>
 
     <!-- Asistente RAG -->
-    <string name="chat_titulo">Asistente del laboratorio</string>
-    <string name="chat_general">Pregunta sobre cualquier equipo</string>
+    <string name="chat_titulo">Rumi</string>
+    <string name="chat_general">Asistente del laboratorio</string>
     <string name="chat_sobre_equipo">Sobre: %1$s</string>
     <string name="chat_hint">Escribe tu pregunta…</string>
     <string name="chat_escuchando">Escuchando…</string>
     <string name="chat_escribiendo">Escribiendo…</string>
     <string name="chat_fuentes">Fuente: %1$s</string>
-    <string name="chat_bienvenida">Puedo responderte sobre los equipos del laboratorio: qué son, cómo se operan y qué precauciones tienen. ¿Qué necesitas saber?</string>
-    <string name="chat_bienvenida_equipo">Puedo responderte sobre %1$s: cómo se opera, para qué se usa y qué precauciones tiene. ¿Qué necesitas saber?</string>
+    <string name="chat_bienvenida">Hola, soy Rumi. Puedo responderte sobre los equipos del laboratorio: qué son, cómo se operan y qué precauciones tienen. ¿Qué necesitas saber?</string>
+    <string name="chat_bienvenida_equipo">Hola, soy Rumi. Puedo responderte sobre %1$s: cómo se opera, para qué se usa y qué precauciones tiene. ¿Qué necesitas saber?</string>
     <string name="chat_error_servidor">El servidor respondió con error %1$d</string>
     <string name="chat_error_red">No se pudo conectar con %1$s. Comprueba que el servidor esté corriendo.</string>
     <string name="chat_error_voz">No se pudo reconocer la voz (error %1$d)</string>
@@ -26,4 +26,22 @@
     <string name="chat_desc_enviar">Enviar</string>
     <string name="chat_desc_microfono">Dictar</string>
     <string name="chat_desc_voz">Leer en voz alta</string>
+    <string name="chat_desc_avatar">Rumi</string>
+
+    <!-- Modal del equipo detectado -->
+    <string name="modal_confianza">Identificado con %1$d%%</string>
+    <string name="modal_subtitulo">¿Qué necesitas de este equipo?</string>
+    <string name="modal_ficha_titulo">Ficha técnica</string>
+    <string name="modal_ficha_detalle">Documento completo · disponible sin conexión</string>
+    <string name="modal_ficha_no_disponible">No hay ficha para este equipo</string>
+    <string name="modal_ficha_error">No se pudo abrir la ficha</string>
+    <string name="modal_sin_lector_pdf">No hay ninguna aplicación para abrir PDF en este dispositivo</string>
+    <string name="modal_chat_titulo">Chat con Rumi</string>
+    <string name="modal_chat_detalle">Pregunta lo que necesites sobre el equipo</string>
+    <string name="modal_chat_sin_internet">Necesita conexión a internet</string>
+
+    <!-- Diagnóstico -->
+    <string name="fallo_titulo">La app se cerró por un error</string>
+    <string name="fallo_compartir">Compartir detalle</string>
+    <string name="fallo_cerrar">Cerrar</string>
 </resources>

@@ -25,7 +25,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.splashscreen.SplashScreen;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.rumiologia.asistente.ChatActivity;
+import com.example.rumiologia.diagnostico.RegistroDeFallos;
+import com.example.rumiologia.fichas.ModalEquipo;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.nio.ByteBuffer;
@@ -99,14 +100,15 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Tocar una caja abre el asistente ya situado en ese equipo: el backend
-        // usa el slug como pista para desambiguar preguntas como "como lo enciendo".
+        // Tocar una caja abre la hoja con los dos caminos: ficha tecnica (sin
+        // internet) o chat con Rumi (con internet).
         overlayView.setOnDetectionClickListener(deteccion ->
-                startActivity(ChatActivity.intentPara(
-                        this, deteccion.label, Equipos.nombreDe(this, deteccion.label))));
+                ModalEquipo.mostrar(getSupportFragmentManager(),
+                        deteccion.label, deteccion.score));
 
         ejecutorAnalisis = Executors.newSingleThreadExecutor();
         prepararDetector();
+        mostrarUltimoFalloSiLoHubo();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -234,6 +236,40 @@ public class MainActivity extends AppCompatActivity {
             framesContados = 0;
             ultimoReporteMs = ahora;
         }
+    }
+
+    /**
+     * Si la app se cerró por un error, lo enseña al volver a abrirla.
+     *
+     * <p>Es la alternativa al Logcat cuando se prueba con el APK instalado a mano y
+     * no hay un PC conectado: el propio teléfono muestra la traza y permite
+     * compartirla.
+     *
+     * <p>Usa el AlertDialog del sistema y no el de Material a propósito: si el
+     * problema fuese justamente de temas, un diálogo de Material fallaría también y
+     * el aviso nunca llegaría a verse.
+     */
+    private void mostrarUltimoFalloSiLoHubo() {
+        String fallo = RegistroDeFallos.leerUltimo(this);
+        if (fallo == null) {
+            return;
+        }
+        RegistroDeFallos.limpiar(this);
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.fallo_titulo)
+                .setMessage(fallo)
+                .setPositiveButton(R.string.fallo_compartir, (d, w) -> {
+                    android.content.Intent envio =
+                            new android.content.Intent(android.content.Intent.ACTION_SEND);
+                    envio.setType("text/plain");
+                    envio.putExtra(android.content.Intent.EXTRA_SUBJECT, "Fallo en Rumiologia");
+                    envio.putExtra(android.content.Intent.EXTRA_TEXT, fallo);
+                    startActivity(android.content.Intent.createChooser(
+                            envio, getString(R.string.fallo_compartir)));
+                })
+                .setNegativeButton(R.string.fallo_cerrar, null)
+                .show();
     }
 
     @Override

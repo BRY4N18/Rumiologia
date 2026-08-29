@@ -1,13 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Paleta tomada de las guías de identidad visual del proyecto
+  (documentacion/fichas/MOVIL APP EXAM/Ideas de interfaced.pdf).
+
+  Verde institucional para lo primario, dorado para acentos y avisos, y un gris
+  muy claro de fondo con tarjetas blancas. El código de color es consistente en
+  toda la app: verde = información, dorado = precaución, rojo = alerta.
+-->
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Fondo semitransparente para textos sobre la camara -->
+    <!-- ===================== Identidad ===================== -->
+    <color name="verde_institucional">#FF1B5E3F</color>
+    <color name="verde_oscuro">#FF14472F</color>
+    <color name="verde_claro">#FFE8F3EC</color>
+    <color name="dorado">#FFC9A227</color>
+    <color name="dorado_claro">#FFFDF6E3</color>
+
+    <color name="fondo">#FFF5F6F7</color>
+    <color name="superficie">#FFFFFFFF</color>
+    <color name="borde">#FFE5E7EB</color>
+    <color name="texto_principal">#FF1A1D1F</color>
+    <color name="texto_secundario">#FF6B7280</color>
+
+    <color name="rojo_alerta">#FFDC2626</color>
+    <color name="rojo_claro">#FFFEF2F2</color>
+
+    <!-- Fondo semitransparente para textos sobre la cámara -->
     <color name="overlay_scrim">#99000000</color>
 
-    <!-- Un color por clase; el orden es el de labels.txt (indices 0..6).
-         Coinciden con los colores de la configuracion de Label Studio. -->
+    <!-- Icono y presentación -->
+    <color name="ic_launcher_background">#FFFFFFFF</color>
+    <color name="splash_fondo">#FFFFFFFF</color>
+
+    <!-- ===================== Chat con Rumi ===================== -->
+    <color name="chat_fondo">@color/fondo</color>
+    <color name="chat_cabecera">@color/verde_institucional</color>
+    <color name="chat_subtitulo">#FFB8D4C4</color>
+    <color name="chat_icono">@color/verde_institucional</color>
+    <color name="chat_barra_entrada">@color/superficie</color>
+
+    <color name="burbuja_usuario">@color/verde_institucional</color>
+    <color name="burbuja_asistente">@color/superficie</color>
+    <color name="burbuja_error">@color/rojo_claro</color>
+
+    <color name="texto_burbuja_usuario">@color/white</color>
+    <color name="texto_burbuja_asistente">@color/texto_principal</color>
+    <color name="texto_burbuja_error">@color/rojo_alerta</color>
+
+    <!-- ===================== Detección ===================== -->
+    <!-- Un color por clase; el orden es el de labels.txt (índices 0..6).
+         Coinciden con los colores de la configuración de Label Studio. -->
     <array name="colores_clases">
         <item>#E6194B</item>
         <item>#3CB44B</item>
@@ -17,18 +61,4 @@
         <item>#911EB4</item>
         <item>#46F0F0</item>
     </array>
-
-    <!-- Identidad de la app: verde del logo -->
-    <color name="ic_launcher_background">#FFFFFFFF</color>
-    <color name="verde_rumiologia">#FF14603A</color>
-    <color name="splash_fondo">#FFFFFFFF</color>
-
-    <!-- Asistente RAG -->
-    <color name="chat_fondo">#FF121417</color>
-    <color name="chat_cabecera">#FF1E2227</color>
-    <color name="chat_subtitulo">#FF9AA3AD</color>
-    <color name="chat_icono">#FFCBD3DB</color>
-    <color name="burbuja_usuario">#FF2E5AAC</color>
-    <color name="burbuja_asistente">#FF2A2F36</color>
-    <color name="burbuja_error">#FF7A2E2E</color>
 </resources>

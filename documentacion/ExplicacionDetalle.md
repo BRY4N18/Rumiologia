@@ -30,12 +30,16 @@ Todo el diseño gira alrededor de estos dos flujos.
 
 ```
  1. OverlayView detecta el toque                  (onTouchEvent → deteccionEn)
- 2. MainActivity abre el chat con ese equipo      (ChatActivity.intentPara)
- 3. El usuario escribe o dicta                    (SpeechRecognizer)
- 4. Retrofit envía la pregunta al backend         (AsistenteApi.preguntar)
- 5. El backend consulta Gemini con File Search    (app.py)
- 6. La respuesta se muestra y opcionalmente se lee (TextToSpeech)
+ 2. MainActivity abre la hoja del equipo          (ModalEquipo.mostrar)
+ 3a. Ficha técnica → PDF desde assets             (RepositorioFichas) — sin internet
+ 3b. Chat con Rumi → el usuario escribe o dicta   (SpeechRecognizer)
+ 4. La regla decide el alcance de la búsqueda     (ReglaDeAlcance)
+ 5. Retrofit llama a Gemini con File Search       (AsistenteGemini)
+ 6. La respuesta se muestra con sus fuentes       (ChatAdapter)
+ 7. Opcionalmente se lee en voz alta              (TextToSpeech)
 ```
+
+No hay servidor propio: la app habla directamente con Google.
 
 Varios pasos existen para resolver problemas que no son evidentes hasta que fallan.
 
@@ -291,33 +295,166 @@ Si no encuentra el nombre, devuelve el propio slug: es preferible mostrar
 
 ---
 
+---
+
+## `fichas/ModalEquipo.java` — La hoja del equipo detectado
+
+Lo que aparece al tocar una caja. Ofrece los dos caminos del flujo y decide cuál está
+disponible.
+
+| Camino | Requiere internet | Color |
+|---|---|---|
+| Ficha técnica (PDF) | No | Verde |
+| Chat con Rumi | Sí | Dorado |
+
+El código de color no es decorativo: **verde = disponible siempre, dorado = necesita
+conexión**. Se mantiene en toda la app.
+
+Cuando no hay internet, el botón del chat se deshabilita **y explica por qué**. Un
+botón que no responde sin decir nada se lee como un fallo de la aplicación.
+
+Lo mismo si un equipo no tuviera ficha: en vez de ofrecer un botón que no hace nada,
+se muestra "No hay ficha para este equipo".
+
+## `fichas/RepositorioFichas.java` — Acceso a los PDF
+
+Los PDF viven en `assets/fichas/<slug>.pdf`, dentro del APK. Eso es lo que hace que
+la ficha **funcione sin conexión**: es la mitad de la app que sigue sirviendo cuando
+Rumi no está disponible.
+
+**Un asset no es un archivo del sistema.** Vive comprimido dentro del APK y ninguna
+aplicación externa puede abrirlo. Por eso `prepararParaAbrir` lo copia a la caché
+antes de compartirlo con el visor de PDF.
+
+Reutiliza la copia anterior si ya existe y coincide en tamaño: abrir la misma ficha
+dos veces no debería reescribir 200 KB en disco.
+
+## `EstadoRed.java` — ¿Hay internet de verdad?
+
+Comprueba `NET_CAPABILITY_VALIDATED`, no solo si hay una red activa.
+
+El matiz importa: **estar conectado al WiFi no significa tener internet**. El
+laboratorio puede tener una red sin salida, o un portal cautivo que exige aceptar
+condiciones. Con la comprobación simple, el chat se mostraría habilitado y el usuario
+se encontraría un error de conexión después.
+
 ## Paquete `asistente` — El chat con voz
 
-### `AsistenteApi.java` — El contrato con el backend
+### La estructura del paquete
 
-Una interfaz que Retrofit convierte en llamadas HTTP reales. Declara qué se envía y
-qué se espera; la librería se encarga del hilo, la serialización JSON y los errores.
+```
+asistente/
+├─ ChatActivity, ChatAdapter, Mensaje      la pantalla
+└─ ia/
+   ├─ AsistenteIA          interfaz: qué es "un asistente"
+   ├─ RespuestaAsistente   lo que devuelve, en términos del dominio
+   ├─ ProveedorClave       interfaz: de dónde sale la API key
+   ├─ ClaveCompilada       implementación actual (local.properties)
+   ├─ ReglaDeAlcance       decide si filtrar (pura, sin Android)
+   ├─ AlcanceConsulta      adapta la regla a los datos de la app
+   ├─ FabricaAsistente     único sitio que sabe qué implementación se usa
+   └─ gemini/
+      ├─ GeminiApi         interfaz Retrofit
+      ├─ GeminiDto         las clases del JSON
+      └─ AsistenteGemini   implementa AsistenteIA
+```
 
-Dentro están las clases del contrato: `Consulta` (pregunta, equipo, historial),
-`Turno`, `Respuesta` (respuesta, fuentes) y `Salud`.
+La división no es decorativa. **`ChatActivity` no menciona a Gemini en ninguna
+línea**: pide un asistente a la fábrica y recibe uno. Ese diseño ya se puso a prueba —
+el asistente vivió primero en un backend FastAPI y luego pasó a Gemini directo, y la
+pantalla no cambió.
 
-**El campo `equipo` es opcional a propósito.** Llega cuando el usuario tocó una
-detección; se omite cuando pregunta desde el chat sin el aparato delante — que es
-justamente el caso que necesita búsqueda semántica.
+### `AsistenteIA.java` — El contrato
 
-### `ClienteAsistente.java` — Un solo cliente HTTP
+Define qué significa "preguntar algo": una pregunta, el equipo detectado, el historial
+y un callback con la respuesta o el error. Cambiar de proveedor significa escribir
+otra implementación de esta interfaz.
 
-Construye el `Retrofit` una vez y lo reutiliza. Crear uno por pantalla desperdiciaría
-el pool de conexiones y los hilos de OkHttp.
+### `RespuestaAsistente.java` — El resultado en términos del dominio
 
-Dos decisiones aquí:
+Texto y fuentes. Existe para que la pantalla no manipule las clases del JSON de ningún
+proveedor: si Gemini cambia la forma de su respuesta, se ajusta la traducción en un
+solo sitio.
 
-**`10.0.2.2` como dirección base.** Es el atajo del emulador para llegar al
-"localhost" del PC anfitrión. Desde el emulador, `127.0.0.1` apunta al propio teléfono
-virtual. Para un teléfono físico hay que poner la IP del PC en la red local.
+### `ProveedorClave` y `ClaveCompilada`
 
-**Tiempos de espera ampliados.** El modelo tarda varios segundos; los 10 s por defecto
-de OkHttp cortarían respuestas válidas a medio generar.
+Una interfaz de una sola función. Hoy la clave se compila desde `local.properties`;
+está previsto moverla a Supabase o pedírsela al usuario. Cada opción será otra
+implementación, y nada más cambiará.
+
+`ClaveCompilada` devuelve `null` si no hay clave, y quien la usa avisa al usuario en
+vez de reventar.
+
+### `ReglaDeAlcance.java` — Decidir dónde buscar
+
+La pieza con más lógica del asistente, y la única con pruebas automatizadas.
+
+**El problema:** si el usuario llegó tocando la estufa ANKOM, la búsqueda debe
+acotarse a esa ficha. Sin filtrar, la pregunta *"¿a qué temperatura trabaja la
+estufa?"* devuelve una respuesta que mezcla los 102 °C de la ANKOM con los 300 °C de
+la MEMMERT — comprobado contra la API real.
+
+**La excepción:** si la pregunta nombra otro equipo, el filtro se levanta. Si no,
+alguien frente a la balanza que pregunte por la incubadora recibiría "esa información
+no está en las fichas" cuando sí está.
+
+**El detalle que hace que funcione:** solo se usan palabras que identifican a **un
+único** equipo. "ankom" aparece en tres equipos y "estufa" en dos; aceptándolas,
+preguntar "por la estufa" coincidiría con la MEMMERT, levantaría el filtro y volvería
+a mezclarlas. Tras descartar las ambiguas, a `ankom_estufa` le queda "secado" y a
+`memmert` le quedan "memmert" y "universal".
+
+Está separada de Android a propósito —no usa `Context` ni assets— para poder probarla
+con tests de JVM. `ReglaDeAlcanceTest` cubre 11 casos, incluidos los límite.
+
+### `AlcanceConsulta.java` — El puente
+
+Lee los equipos de `clases.json` y se los pasa a la regla. Nada más. Existe para que
+la regla no dependa de Android.
+
+### `FabricaAsistente.java` — Dónde se decide el proveedor
+
+Único sitio del proyecto que menciona `AsistenteGemini`. Cambiar de proveedor, o
+alternar entre varios según configuración, se resuelve aquí.
+
+### `gemini/GeminiApi.java` — La interfaz Retrofit
+
+Un solo método: `POST models/{modelo}:generateContent`.
+
+Se usa REST y no el SDK de Android por un motivo comprobado, no por preferencia: se
+inspeccionaron `com.google.firebase:firebase-ai` 17.16.0 y
+`com.google.ai.client.generativeai` 0.9.0, y **ninguno expone File Search**. Su clase
+`Tool` ofrece funciones, ejecución de código, contexto de URL, Google Search y Google
+Maps. Sin File Search no hay RAG.
+
+La clave viaja en la cabecera `x-goog-api-key`, no en la URL: en la URL acabaría
+escrita en los registros de cualquier proxy intermedio.
+
+### `gemini/GeminiDto.java` — La forma del JSON
+
+Todas las clases anidadas en un fichero porque no son lógica, son la forma del JSON;
+verlas juntas permite compararlas de un vistazo con la petición real.
+
+Dos métodos hacen algo más que declarar campos: `primerTexto()` concatena las partes
+de la respuesta, y `fuentes()` extrae los documentos citados de `groundingMetadata` —
+lo que distingue una respuesta verificable de una afirmación suelta.
+
+### `gemini/AsistenteGemini.java` — La implementación
+
+Concentra todo lo específico del proveedor: la URL, el modelo `gemini-3.6-flash`, el
+identificador del almacén, la instrucción del sistema y la construcción del filtro.
+
+**La instrucción del sistema no es un adorno.** Se comprobó preguntando por la
+incubadora con el filtro puesto en otro equipo: sin instrucción, el modelo respondió
+con tiempos y un método de dos etapas con pepsina que no está en ninguna ficha; con
+ella, reconoció que no tenía el dato.
+
+| Aspecto | Decisión | Por qué |
+|---|---|---|
+| Tiempo de lectura | 90 segundos | El modelo tarda varios segundos; los 10 s por defecto cortarían respuestas válidas |
+| Historial | Últimos 6 turnos | Más contexto encarece sin mejorar: lo útil lo aporta la búsqueda |
+| `temperature` | 0.2 | Fidelidad a la ficha, no redacción creativa |
+| Errores | Traducidos por código HTTP | "Se agotó la cuota" es accionable; "429" no |
 
 ### `Mensaje.java` — Un mensaje en pantalla
 
@@ -358,40 +495,31 @@ la llamada sin mejorar la respuesta, porque el contexto útil lo aporta la búsq
 
 ---
 
-# Parte 2 — El backend del asistente
+# Parte 2 — La herramienta de gestión de almacenes
 
-Servicio **temporal** de prueba de concepto. Ver [`../backend/ESTADO.md`](../backend/ESTADO.md).
+`gestion_almacenes/gestionar.py` se ejecuta **en el PC**, no en la app. Administra el
+almacén de fichas de Gemini: crear, subir, listar, borrar y probar consultas.
 
-## `crear_almacen.py` — Subir las fichas
+La clase `GestorAlmacenes` concentra el trato con la API y no sabe nada de la línea de
+comandos; las funciones `cmd_*` solo traducen argumentos y presentan resultados. Así
+la lógica se puede reutilizar desde otra interfaz sin arrastrar el CLI.
 
-Crea el File Search Store de Gemini y sube las 7 fichas. Se ejecuta a mano, una vez, y
-otra vez cada vez que cambien las fichas.
+| Comando | Para qué |
+|---|---|
+| `listar` | Almacenes de la cuenta |
+| `documentos` | Qué hay indexado y con qué metadatos |
+| `crear` | Almacén nuevo |
+| `subir` | Sube las fichas etiquetadas con `equipo=<slug>` |
+| `borrar-documento` / `borrar-almacen` | Limpieza |
+| `probar` | Lanza una consulta real, con o sin filtro |
 
-Está separado del servidor a propósito: indexar cuesta tiempo y cuota, y las fichas
-cambian pocas veces. No tiene sentido rehacerlo en cada arranque.
+**`subir` borra antes de subir.** Sin eso quedarían dos copias del mismo contenido y
+la búsqueda devolvería fragmentos duplicados. Y espera a que la indexación termine,
+porque es asíncrona: consultar un documento aún no indexado no devuelve nada.
 
-Espera a que cada subida termine antes de seguir: la indexación es **asíncrona**, y
-consultar un documento aún no indexado no devolvería nada.
-
-## `app.py` — El servidor
-
-| Pieza | Qué hace | Por qué |
-|---|---|---|
-| `INSTRUCCION` | La instrucción del sistema | Es la parte que más protege: prohíbe inventar datos, obliga a citar el equipo y a mencionar advertencias de seguridad, y desambigua las dos estufas |
-| `/health` | Comprueba la configuración | Permite verificar clave y almacén sin gastar una llamada al modelo |
-| `/chat` | Recibe la pregunta y responde | Único endpoint que usa la app |
-| `extraer_fuentes` | Saca los documentos citados | Envuelto en `try/except`: las fuentes son informativas y nunca deben romper la respuesta |
-
-**El `equipo` se inyecta como pista, no como filtro.** Se añade una nota al principio
-de la pregunta diciendo qué está viendo el usuario, pero la búsqueda sigue viendo
-todas las fichas: alguien puede estar frente a una balanza y preguntar por otra cosa.
-
-**`temperature=0.2`** — se quiere fidelidad a la fuente, no redacción creativa.
-
-**La clave vive aquí y no en la app.** Si la app llamara a Gemini directamente, la API
-key viajaría dentro del APK y extraerla sería trivial.
-
----
+**`probar` envía la misma instrucción que la app.** Es deliberado: sin ella el modelo
+se inventa las respuestas, así que probar sin instrucción no representaría el
+comportamiento real.
 
 # Parte 3 — Los scripts de `ml/`
 

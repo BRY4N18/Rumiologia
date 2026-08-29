@@ -99,15 +99,14 @@ ENTRENAMIENTO (fuera del teléfono, una sola vez)
   Fotos → Label Studio → dataset → Colab + YOLO26 → model.tflite
 
 EJECUCIÓN EN EL TELÉFONO
-  CameraX → Detector (LiteRT) → OverlayView
+  CameraX → Detector (LiteRT) → OverlayView        sin internet
                                      │ toque
                                      ▼
-                              ChatActivity  ──HTTP──►  backend
-                              (texto y voz)               │
-                                                          ▼
-                                              Gemini + File Search
-                                                          │
-                                                  fichas técnicas .md
+                              ChatActivity → AsistenteIA ──HTTP──► Gemini
+                              (texto y voz)   (interfaz)      + File Search
+                                                                   │
+                                                          fichas técnicas .md
+                                                        (filtradas por equipo)
 ```
 
 La idea de fondo: **el trabajo pesado ocurre una vez, fuera del teléfono.** Entrenar
@@ -201,19 +200,57 @@ ejecuta una vez.
 **Modelo: `gemini-3.6-flash`.** Los *flash* son los rápidos y económicos; para
 responder sobre fichas técnicas no hace falta un *pro*.
 
-## Backend propio entre la app y Gemini
+## Sin servidor propio: la app llama a Gemini directamente
 
-**La app no llama a Gemini directamente.** La API key acabaría dentro del APK y
-extraerla es trivial: basta descomprimirlo. El servicio intermedio (FastAPI) es el
-único que conoce la clave.
+Hubo un backend FastAPI intermedio, y se **eliminó**. Servía para que la API key no
+viajara en el APK, pero tenía un problema práctico mayor: corría en una laptop, y
+apagarla dejaba la app sin asistente. Para una demostración en el laboratorio eso no
+es aceptable.
 
-Ese servicio es **temporal**, una prueba de concepto para validar el enfoque. Ver
-[`../backend/ESTADO.md`](../backend/ESTADO.md).
+La app llama ahora a `generativelanguage.googleapis.com` con Retrofit. El precio es
+que la clave va dentro del APK — decisión consciente, con plan de migrarla a Supabase
+(ver decisiones futuras).
 
-## Retrofit para hablar con el backend
+**Se descartó el SDK de Android**, y no por preferencia. Se inspeccionaron los dos
+paquetes reales y **ninguno expone File Search**:
+
+| SDK | Versión | ¿FileSearch? |
+|---|---|---|
+| `com.google.firebase:firebase-ai` | 17.16.0 | No |
+| `com.google.ai.client.generativeai` | 0.9.0 | No |
+
+La clase `Tool` de Firebase AI Logic declara `functionDeclarations`, `codeExecution`,
+`urlContext`, `googleSearch` y `googleMaps`. Sin `fileSearch` no hay RAG, y el
+asistente respondería sobre equipos genéricos de internet.
+
+También se descartó la **API de Agentes** (`/v1beta/agents`): el SDK la marca como
+experimental y sin tipar, no se puede verificar si admite File Search, y no aporta
+nada que este proyecto necesite.
+
+## Retrofit para hablar con Gemini
 
 Convierte una interfaz Java en llamadas de red y serializa el JSON con Gson.
 `HttpURLConnection` obligaría a escribir a mano el hilo, el parseo y los errores.
+
+La clave viaja en la cabecera `x-goog-api-key` y no en la URL: en la URL acabaría
+escrita en los registros de cualquier proxy intermedio.
+
+## Filtro por metadatos: acotar la búsqueda al equipo detectado
+
+Cada ficha se sube al almacén etiquetada con `equipo: <slug>`, y la consulta filtra
+con `metadata_filter`. **No es un adorno**, resuelve un problema medido:
+
+| Pregunta: *"¿a qué temperatura trabaja la estufa?"* | Fuentes | Respuesta |
+|---|---|---|
+| Sin filtro | `memmert`, `ankom_estufa` | Mezcla 300 °C, 37 °C **y** 102 °C |
+| Filtrado a `ankom_estufa` | `ankom_estufa` | 100–105 °C, estándar 102 °C ± 2 °C |
+
+El laboratorio tiene dos estufas y sin filtro el asistente las confunde.
+
+**El filtro se levanta si la pregunta nombra otro equipo**, para no perder el caso de
+consultar sin el aparato delante. La regla usa solo palabras que identifican a un
+único equipo: "ankom" (tres equipos) y "estufa" (dos) se descartan, o preguntar "por
+la estufa" levantaría el filtro y volvería a mezclarlas.
 
 ## Voz: `SpeechRecognizer` y `TextToSpeech` de Android
 
@@ -226,6 +263,45 @@ conexión.
 
 La voz quedó como una capa fina sobre el chat: mismo endpoint, misma lógica. Por eso
 soportar texto **y** voz no duplicó el trabajo.
+
+## Identidad visual tomada de las guías del proyecto
+
+La paleta y el estilo salen de `documentacion/fichas/MOVIL APP EXAM/Ideas de
+interfaced.pdf`. **Se tomó la identidad, no el catálogo de pantallas**: esos mockups
+describen una app con login institucional, onboarding, catálogo, historial, perfil y
+notificaciones, que es un proyecto distinto del que hay aquí.
+
+| Elemento | Valor |
+|---|---|
+| Verde institucional | `#1B5E3F` |
+| Verde claro | `#E8F3EC` |
+| Dorado | `#C9A227` |
+| Fondo | `#F5F6F7` |
+| Tarjetas | Blancas, esquinas 14 dp |
+
+El código de color es consistente en toda la app: **verde = información disponible
+siempre, dorado = acción que necesita conexión, rojo = error**. Por eso en el modal
+la ficha técnica es verde y el chat con Rumi es dorado.
+
+## Rumi: avatar derivado del logo
+
+El asistente no tenía imagen propia. En lugar de inventar una que desentonara, se
+deriva del logo de la app: la silueta del matraz en blanco sobre un círculo verde
+institucional, generada con un script desde `logo.png`. Así Rumi se lee como parte de
+la misma aplicación.
+
+## Las fichas en PDF dentro del APK
+
+Los 7 PDF viajan en `assets/fichas/`, renombrados al slug de cada equipo. Ocupan
+1.5 MB sobre los 45 MB del APK.
+
+**Van dentro y no se descargan** por una razón concreta: así la consulta de la ficha
+**funciona sin internet**. En un laboratorio la señal puede ser mala, y el
+procedimiento de operación es justo lo que alguien necesita con el equipo delante.
+
+Se abren con un visor externo mediante `FileProvider`. Se asumió que el dispositivo
+tiene un lector de PDF instalado; si no lo tuviera, la app avisa en lugar de no hacer
+nada.
 
 ## Markdown para las fichas técnicas
 
@@ -245,9 +321,12 @@ fragmentar documentos para RAG.
 
 | Tema | Estado |
 |---|---|
-| Dónde se despliega el backend definitivo | Sin decidir |
-| Autenticación de la app contra el servicio | Sin decidir |
+| Proteger la clave: Supabase, o pantalla donde el usuario ponga la suya | Sin decidir |
+| Streaming de respuestas (`streamGenerateContent`) | Sin decidir |
+| Configuración remota del identificador del almacén | Sin decidir |
 | Reexportar el modelo a 320×320 por rendimiento | Pendiente de medir |
+| Nombre definitivo de la app (¿"UTEQ Lab Lens"?) | Sin decidir |
+| Visor de PDF integrado como respaldo | Descartado por ahora |
 
 ---
 
@@ -407,8 +486,81 @@ vistas en vez de generalizar.
 En pruebas reales sí detecta correctamente varios equipos a la vez (Ohaus PR224 85 %,
 contador de colonias 82 %, AQUASEARCHER 96 %), con las cajas bien posicionadas.
 
+## El backend se eliminó
+
+Existió un servicio FastAPI intermedio y se retiró. La app llama ahora directamente a
+la API REST de Gemini. Motivo: el backend corría en una laptop, y apagarla dejaba la
+app sin asistente.
+
+Lo que se conserva del backend: la instrucción del sistema (validada contra casos
+reales) y el contrato de la conversación. Lo que se pierde: poder cambiar el prompt
+sin republicar el APK.
+
+En su lugar quedó `gestion_almacenes/`, una herramienta de PC para administrar el
+almacén de fichas — crear, subir, listar, borrar y probar consultas sin compilar.
+
+## Detalles de la API de File Search que costaron descubrir
+
+- **Borrar un documento indexado exige `force: true`**, o devuelve
+  `400 Cannot delete non-empty Document`.
+- **La indexación es asíncrona**: hay que esperar a que la operación termine antes de
+  consultar, o el documento aún no aparece en las búsquedas.
+- **`google-genai` debe ser 2.20.0 o superior**; las anteriores no tienen
+  `file_search_stores`.
+- La API devuelve **503 transitorios** ("high demand") con cierta frecuencia. La app
+  los traduce a un mensaje comprensible y el usuario puede reintentar.
+
+## La instrucción del sistema es lo que impide inventar
+
+Comprobado con una prueba deliberada: preguntando por la incubadora DAISY con el
+filtro puesto en la balanza —es decir, sin acceso a la ficha correcta—
+
+- **Sin instrucción del sistema**: respondió con tiempos de incubación y un método de
+  dos etapas con pepsina y HCl. Suena plausible y **no está en ninguna ficha**.
+- **Con instrucción**: *"Esa información no está en las fichas técnicas del
+  laboratorio."*
+
+Por eso está duplicada en `AsistenteGemini.java` y en `gestion_almacenes/gestionar.py`:
+la segunda permite probar consultas fuera de la app, pero ambas deben decir lo mismo.
+
+## Arquitectura del asistente pensada para cambiar de proveedor
+
+La pantalla de chat depende de la interfaz `AsistenteIA`, no de Gemini. Cambiar de
+proveedor significa escribir otra implementación, sin tocar la interfaz de usuario.
+No es teórico: el asistente ya vivió en un backend FastAPI antes de moverse a Gemini
+directo, y la pantalla no cambió.
+
+Lo mismo con `ProveedorClave`: hoy la clave viene compilada desde `local.properties`;
+cuando se implemente Supabase o la pantalla de configuración, será otra implementación
+en la misma línea de `FabricaAsistente`.
+
+## El flujo al tocar un equipo
+
+Tocar una detección ya no abre el chat directamente: aparece una hoja inferior con
+los dos caminos.
+
+```
+Cámara detecta → toque → ┌──────────────────────────┐
+                         │ Identificado con 85%     │
+                         │ Estufa de Secado ANKOM   │
+                         │ ──────────────────────── │
+                         │ 📄 Ficha técnica         │ verde  · siempre
+                         │ 💬 Chat con Rumi         │ dorado · con internet
+                         └──────────────────────────┘
+```
+
+El botón del chat se deshabilita **con la explicación visible** cuando no hay
+conexión. Un botón que no responde sin decir por qué se lee como un fallo de la app.
+
+## Detectar internet: conectado no es lo mismo que con salida
+
+`EstadoRed` consulta `NET_CAPABILITY_VALIDATED` y no solo si hay una red activa.
+Estar conectado al WiFi no significa tener internet: el laboratorio puede tener una
+red sin salida o un portal cautivo. Con la comprobación simple, el chat aparecería
+habilitado para luego fallar.
+
 ## Pendiente
 
-- Servicio definitivo del asistente: desplegado, con HTTPS y autenticación.
-- Pantalla de ficha técnica dentro de la app (hoy el toque abre directamente el chat).
+- Proteger la clave de la API (hoy compilada en el APK).
+- Streaming de respuestas.
 - Más fotos de `ankom_estufa` y etiquetado de todos los equipos en cada foto.
