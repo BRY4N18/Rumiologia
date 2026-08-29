@@ -559,8 +559,51 @@ Estar conectado al WiFi no significa tener internet: el laboratorio puede tener 
 red sin salida o un portal cautivo. Con la comprobación simple, el chat aparecería
 habilitado para luego fallar.
 
+Esa consulta **exige declarar `ACCESS_NETWORK_STATE`** en el manifiesto. Es un
+permiso normal —no lo acepta el usuario, basta con declararlo— pero olvidarlo no da
+error de compilación: lanza `SecurityException` en ejecución, y solo en el momento
+exacto de abrir el modal. Pasó, y cerraba la app.
+
+Además, `hayInternet` captura `SecurityException` y devuelve `false`. Una
+comprobación de diagnóstico no debe poder tumbar la aplicación bajo ninguna
+circunstancia, aunque algún fabricante restrinja la consulta.
+
+## Tema propio para el modal
+
+`ModalEquipo` declara `Theme.Material3.DayNight.BottomSheetDialog` en lugar de
+heredar el de la Activity.
+
+El motivo: `MainActivity` arranca con `Theme.Rumiologia.Splash`, cuyo padre
+`Theme.SplashScreen` **no desciende de Material**. Los componentes de Material
+validan eso al inflarse y lanzan *"The style on this component requires your app
+theme to be Theme.MaterialComponents (or a descendant)"*.
+
+Tiene que ser un tema **completo**, no un `ThemeOverlay`: un overlay se aplica encima
+de un tema Material y da por hechos sus atributos, así que sobre una base no Material
+tampoco basta.
+
+## Lección de método: conseguir el dato antes de arreglar
+
+El cierre al tocar un equipo se atribuyó primero al tema Material, por una hipótesis
+plausible construida sobre evidencia indirecta. **Se corrigió dos veces sin acertar.**
+
+La causa real —el permiso `ACCESS_NETWORK_STATE` sin declarar— apareció en cuanto
+hubo una traza del error. Estaba en una línea.
+
+Para obtenerla se añadió temporalmente un registro de fallos que guardaba la traza y
+la mostraba al reabrir la app, porque las pruebas se hacían con el APK instalado a
+mano y sin PC conectado. **Ya se eliminó**: cumplió su función y no tenía sentido
+dejarlo en la app.
+
+Si vuelve a hacer falta diagnosticar sin PC, las opciones son conectar el teléfono
+por USB con depuración activada, usar la depuración inalámbrica de Android 11+, o
+volver a añadir un registro como aquel.
+
 ## Pendiente
 
 - Proteger la clave de la API (hoy compilada en el APK).
+- Ajustar el presupuesto de razonamiento: entre 403 y 638 tokens por consulta que no
+  aportan nada cuando la respuesta sale de un documento.
 - Streaming de respuestas.
+- Medir GPU vs CPU y milisegundos en los dispositivos de prueba.
 - Más fotos de `ankom_estufa` y etiquetado de todos los equipos en cada foto.

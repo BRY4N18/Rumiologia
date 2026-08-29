@@ -338,6 +338,25 @@ laboratorio puede tener una red sin salida, o un portal cautivo que exige acepta
 condiciones. Con la comprobación simple, el chat se mostraría habilitado y el usuario
 se encontraría un error de conexión después.
 
+**Necesita el permiso `ACCESS_NETWORK_STATE` declarado en el manifiesto.** Olvidarlo
+no da error de compilación: lanza `SecurityException` en ejecución, al abrir el modal.
+Ocurrió, y cerraba la app.
+
+Por eso la consulta va dentro de un `try/catch`: aunque el permiso ya esté, una
+comprobación de diagnóstico no debe poder tumbar la aplicación. Si algún fabricante
+la restringe, devuelve "sin internet" y la app sigue funcionando.
+
+### El tema del modal
+
+`ModalEquipo` declara su propio tema, `Theme.Material3.DayNight.BottomSheetDialog`,
+en vez de heredar el de la Activity.
+
+`MainActivity` arranca con el tema de la pantalla de presentación, cuyo padre
+`Theme.SplashScreen` no desciende de Material — y los componentes Material lo
+validan al inflarse. Tiene que ser un tema **completo**: un `ThemeOverlay` se aplica
+encima de un tema Material y da por hechos sus atributos, así que sobre una base no
+Material tampoco sirve.
+
 ## Paquete `asistente` — El chat con voz
 
 ### La estructura del paquete

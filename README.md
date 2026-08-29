@@ -77,6 +77,8 @@ Google Drive. Ver [`ml/README.md`](ml/README.md) para el flujo completo.
 - [x] Ficha técnica en PDF, disponible sin conexión
 - [x] Identidad visual del proyecto aplicada
 - [ ] Streaming de respuestas
+- [ ] Ajustar el presupuesto de razonamiento del modelo
+- [ ] Reforzar el dataset de `ankom_estufa` (7 imágenes de entrenamiento)
 
 ## Limitaciones conocidas
 

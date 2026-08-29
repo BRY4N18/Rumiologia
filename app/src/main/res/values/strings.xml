@@ -39,9 +39,4 @@
     <string name="modal_chat_titulo">Chat con Rumi</string>
     <string name="modal_chat_detalle">Pregunta lo que necesites sobre el equipo</string>
     <string name="modal_chat_sin_internet">Necesita conexión a internet</string>
-
-    <!-- Diagnóstico -->
-    <string name="fallo_titulo">La app se cerró por un error</string>
-    <string name="fallo_compartir">Compartir detalle</string>
-    <string name="fallo_cerrar">Cerrar</string>
 </resources>
