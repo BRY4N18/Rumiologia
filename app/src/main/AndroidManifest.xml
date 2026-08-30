@@ -23,6 +23,7 @@
     </queries>
 
     <application
+        android:name=".RumiologiaApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -33,11 +34,10 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.Rumiologia">
         <activity
-            android:name=".MainActivity"
+            android:name=".BienvenidaActivity"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.Rumiologia.Splash"
-            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Rumiologia"
             tools:ignore="LockedOrientationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -47,11 +47,25 @@
         </activity>
 
         <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:screenOrientation="fullSensor"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:theme="@style/Theme.Rumiologia.Splash"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".asistente.ChatActivity"
             android:exported="false"
             android:label="@string/chat_titulo"
             android:parentActivityName=".MainActivity"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ajustes.AjustesActivity"
+            android:exported="false"
+            android:label="@string/ajustes_titulo"
+            android:parentActivityName=".MainActivity" />
 
         <!--
           Permite compartir las fichas en PDF con un visor externo. Un archivo de

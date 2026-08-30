@@ -13,9 +13,7 @@ import com.example.rumiologia.asistente.ia.gemini.AsistenteGemini;
  * pide un asistente y recibe uno. Cambiar de proveedor, o alternar entre varios
  * según configuración, se resuelve aquí sin tocar la pantalla.
  *
- * <p>Lo mismo con la clave: hoy viene compilada desde {@code local.properties};
- * cuando se implemente la pantalla de configuración o Supabase, será otra
- * implementación de {@link ProveedorClave} en esta misma línea.
+ * <p>La clave sale de {@link ClaveUsuario}: la que la persona ingresó en Ajustes.
  */
 public final class FabricaAsistente {
 
@@ -26,8 +24,9 @@ public final class FabricaAsistente {
 
     public static synchronized AsistenteIA crear(@NonNull Context contexto) {
         if (instancia == null) {
-            ProveedorClave clave = new ClaveCompilada();
-            instancia = new AsistenteGemini(contexto, clave);
+            Context aplicacion = contexto.getApplicationContext();
+            ProveedorClave clave = new ClaveUsuario(aplicacion);
+            instancia = new AsistenteGemini(aplicacion, clave);
         }
         return instancia;
     }

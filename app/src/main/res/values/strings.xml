@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Rumiologia</string>
+    <string name="app_name">Rumiología</string>
 
     <string name="estado_iniciando">Iniciando…</string>
     <string name="estado_sin_modelo">Modelo no encontrado: coloca model.tflite en assets/</string>
@@ -27,6 +27,11 @@
     <string name="chat_desc_microfono">Dictar</string>
     <string name="chat_desc_voz">Leer en voz alta</string>
     <string name="chat_desc_avatar">Rumi</string>
+    <string name="voz_analizando">Analizando…</string>
+    <string name="voz_pensando">Rumi está pensando…</string>
+    <string name="voz_hablando">Hablando…</string>
+    <string name="voz_toca_para_hablar">Toca el círculo para seguir hablando</string>
+    <string name="voz_cancelar">Cancelar</string>
 
     <!-- Modal del equipo detectado -->
     <string name="modal_confianza">Identificado con %1$d%%</string>
@@ -39,4 +44,50 @@
     <string name="modal_chat_titulo">Chat con Rumi</string>
     <string name="modal_chat_detalle">Pregunta lo que necesites sobre el equipo</string>
     <string name="modal_chat_sin_internet">Necesita conexión a internet</string>
+
+    <!-- Pantalla de bienvenida -->
+    <string name="bienvenida_bajada">Detección de equipos del Laboratorio de Rumiología</string>
+    <string name="bienvenida_boton">Analizar equipo</string>
+    <string name="bienvenida_desarrollado_por">Desarrollado por:</string>
+    <string name="bienvenida_creditos_nombres">Mario Zambrano · Belinda Toaquiza · Bryan Lombeida · Melanie Muñoz</string>
+    <string name="bienvenida_carrera">Ingeniería en Software · 6to Semestre</string>
+    <string name="bienvenida_derechos">© 2026 Universidad Técnica Estatal de Quevedo. Todos los derechos reservados.</string>
+
+    <!-- Pantalla principal -->
+    <string name="main_desc_ajustes">Ajustes</string>
+    <string name="main_desc_flash">Linterna</string>
+
+    <!-- Ajustes: clave de la API -->
+    <string name="ajustes_titulo">Ajustes</string>
+    <string name="ajustes_desc_atras">Cerrar</string>
+    <string name="ajustes_seccion_clave">Tu clave de Gemini</string>
+    <string name="ajustes_clave_hint">Pega aquí tu clave de Gemini</string>
+    <string name="ajustes_clave_ayuda">Consíguela gratis en aistudio.google.com/apikey. Se guarda cifrada en este dispositivo, nunca en texto plano.</string>
+    <string name="ajustes_desc_mostrar">Mostrar u ocultar la clave</string>
+    <string name="ajustes_guardar">Guardar clave</string>
+    <string name="ajustes_quitar">Quitar clave</string>
+    <string name="ajustes_estado_configurada">Clave configurada</string>
+    <string name="ajustes_estado_sin_clave">Sin clave configurada</string>
+    <string name="ajustes_clave_vacia">Escribe una clave antes de guardar</string>
+    <string name="ajustes_guardado_ok">Clave guardada. Ya puedes hablar con Rumi.</string>
+    <string name="ajustes_quitada_ok">Clave eliminada de este dispositivo</string>
+
+    <!-- Ajustes: voz de Rumi -->
+    <string name="ajustes_seccion_voz">Voz de Rumi</string>
+    <string name="ajustes_voz_ayuda">Elige con qué voz te habla Rumi. Toca ▶ para escucharla antes de elegir.</string>
+    <string name="ajustes_voz_sin_opciones">Este teléfono no tiene voces en español instaladas.</string>
+    <string name="ajustes_voz_desc_probar">Escuchar esta voz</string>
+    <string name="ajustes_voz_espana">Voz %1$d (España)</string>
+    <string name="ajustes_voz_latam">Voz %1$d (Latinoamérica)</string>
+    <string name="ajustes_voz_muestra">Hola, soy Rumi, tu asistente del laboratorio.</string>
+
+    <!-- Ajustes: apariencia (modo claro/oscuro) -->
+    <string name="ajustes_seccion_apariencia">Apariencia</string>
+    <string name="ajustes_tema_claro">Claro</string>
+    <string name="ajustes_tema_oscuro">Oscuro</string>
+    <string name="ajustes_tema_sistema">Seguir el sistema</string>
+
+    <!-- Chat: banner cuando falta configurar la clave -->
+    <string name="chat_banner_sin_clave">Añade tu clave de Gemini para hablar con Rumi</string>
+    <string name="chat_banner_boton">Configurar</string>
 </resources>

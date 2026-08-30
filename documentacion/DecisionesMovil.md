@@ -599,9 +599,383 @@ Si vuelve a hacer falta diagnosticar sin PC, las opciones son conectar el teléf
 por USB con depuración activada, usar la depuración inalámbrica de Android 11+, o
 volver a añadir un registro como aquel.
 
+## Clave de la API: pantalla de Ajustes en vez de compilada (2026-08-30)
+
+**Decisión: cada persona pone su propia clave desde la app, cifrada con el
+Android Keystore.**
+
+La clave compilada en `local.properties` seguía siendo el mayor riesgo de
+seguridad pendiente: cualquiera que descomprima el APK la extrae. La
+alternativa evaluada primero fue subir la clave a Supabase sin más, pero eso
+solo mueve el problema: si se sube en texto plano, cualquiera con acceso al
+volcado de la base de datos la lee igual.
+
+Se implementó `CifradorClave` (AES-256-GCM con una llave no exportable del
+Android Keystore) y `AlmacenClaves` (persistencia del cifrado+iv en
+`SharedPreferences`, nunca en texto plano). `ClaveUsuario`, la nueva
+implementación de `ProveedorClave`, prioriza esa clave y solo cae a
+`ClaveCompilada` si no hay ninguna guardada — así `local.properties` sigue
+sirviendo para desarrollar sin abrir Ajustes cada vez.
+
+**Sobre la copia en la nube (Supabase), aún sin implementar**: se descartó
+reimplementar el login anónimo y las llamadas a PostgREST a mano por REST,
+por el mismo motivo que se descartó el SDK de Android para Gemini pero al
+revés — aquí el SDK oficial (`auth-kt` + `postgrest-kt`) sí cubre exactamente
+lo que hace falta (sesión, refresco de token, RLS), y reconstruir ese
+protocolo a mano es más riesgo que beneficio. La consecuencia es que entra
+**un único archivo Kotlin** al proyecto (`SupabaseClaveSync.kt`), el resto
+sigue en Java.
+
+**Identidad de cada fila sin login propio**: login anónimo de Supabase
+(`auth.signInAnonymously()`). Da un `auth.uid()` estable por instalación sin
+construir una pantalla de login — coherente con la decisión ya tomada de no
+copiar el login institucional del mockup de referencia. La fila en
+`claves_api` queda protegida con RLS (`auth.uid() = user_id`), y lo que se
+sube es el mismo cifrado+iv que ya vive en el dispositivo: Supabase nunca ve
+la clave de Gemini en texto plano.
+
+**Límite honesto que hay que comunicar en la propia UI**: la llave que
+descifra el respaldo vive en el Keystore de un dispositivo concreto y no
+sale de ahí. Sirve para recuperar la clave si se borran los datos de la app
+en el mismo teléfono, **no** como sincronización entre dispositivos — eso
+exigiría una identidad real (login con correo, por ejemplo), que sigue fuera
+de alcance.
+
+## Rediseño visual: identidad del mockup aplicada a lo que ya existía (2026-08-30)
+
+Se tomaron elementos concretos de `Ideas de interfaced (1).pdf` (referencia
+visual, no catálogo de pantallas — ver la aclaración de más arriba) y se
+aplicaron a las pantallas ya existentes, sin agregar ninguna pantalla nueva
+de las que el mockup sí tiene y que quedaron fuera de alcance (login,
+catálogo, notificaciones, historial):
+
+- **Botón de flash** en la cámara, junto al de Ajustes: mismo par de íconos
+  circulares translúcidos que el mockup muestra arriba de la pantalla de
+  escaneo. A diferencia del resto del rediseño, esto es funcional, no solo
+  estético — usa `Camera.getCameraControl().enableTorch()` de CameraX, y se
+  oculta solo si el dispositivo no tiene flash trasero (`hasFlashUnit()`).
+- **`MarcoEscaneoView`**: marco decorativo de esquinas doradas sobre la
+  cámara, como el recuadro de encuadre del mockup. Es una vista nueva,
+  puramente visual — no toca `Detector` ni `OverlayView`, y no intercepta
+  toques (los sigue resolviendo `OverlayView`).
+- El indicador de FPS/latencia pasó de una caja recta en la esquina a una
+  píldora redondeada centrada abajo, más cerca del indicador "Analizando
+  objeto…" del mockup.
+- Anillo dorado alrededor del avatar de Rumi en la cabecera del chat.
+
+**Lo que se revisó y se dejó igual, a propósito:**
+
+- `modal_equipo.xml` ya seguía de cerca el lenguaje del mockup (chip de
+  confianza, tarjetas con icono); no había un dato de categoría/ubicación
+  en `clases.json` que agregar sin inventarlo.
+- La pantalla de presentación (splash) no se tocó: la API nativa de
+  Android (`androidx.core.splashscreen`) solo admite ícono y color de
+  fondo, no un subtítulo de texto como el que muestra el mockup. Agregarlo
+  exigiría reemplazar el splash nativo por uno hecho a mano, lo que
+  contradice la razón por la que se eligió el nativo (queda ligado a que
+  el modelo termine de cargar, ver más arriba). No se hizo el cambio.
+
+## Bienvenida, tira de equipos, foto en el modal y círculo de voz (2026-08-30)
+
+Cuatro pedidos de interfaz sobre lo ya construido, después de que el equipo
+probó la app instalada:
+
+- **`BienvenidaActivity`** pasa a ser la actividad de lanzamiento; `MainActivity`
+  ya no lo es. Una sola pantalla (logo, botón "Analizar equipo", créditos del
+  equipo abajo) — no el onboarding de varias diapositivas del PDF de
+  referencia, que sigue fuera de alcance.
+- **Tira de equipos detectados estilo Historias**, sobre la cámara: no se pudo
+  ver el TikTok de referencia (contenido dinámico, WebFetch no trae nada
+  legible ni con la URL original ni con la redirigida), así que se implementó
+  la interpretación acordada con el usuario — un círculo por clase detectada,
+  se abre el mismo modal que tocar la caja. Se recalcula una detección por
+  clase (la de mayor confianza) y solo se repinta si el conjunto de clases
+  cambia, para no parpadear 20-30 veces por segundo.
+- **Foto del equipo en el modal**: 7 fotos reales de `ml/imagenes_listas/`,
+  elegidas a mano revisando 2-3 candidatas por clase, no la primera o la del
+  medio. Fue necesario: la clase `ankom_estufa` tiene datos de mala calidad
+  ya documentados, y varias fotos "del medio" no mostraban el equipo (una
+  era una persona caminando por el laboratorio). `ImagenesEquipos` las carga
+  desde `assets/equipos/` con el mismo principio de `RepositorioFichas`:
+  si falta una, se oculta el hueco, no se rompe nada.
+- **Círculo animado al hablar con Rumi** (`CirculoVozView` + `DialogoVoz`):
+  el avatar de Rumi con anillos dorados que crecen con el volumen real del
+  micrófono (`onRmsChanged`, que antes estaba vacío). Deliberadamente **no
+  se tocó la lógica de reconocimiento que ya funcionaba** — el diálogo solo
+  se entera de lo que `ChatActivity` ya estaba haciendo (texto parcial,
+  resultado final, error) y lo muestra; es una capa visual aditiva, no un
+  reemplazo. Animar el círculo durante la respuesta hablada (TTS) quedó
+  fuera de esta tanda.
+
+## Se quitó la copia en la nube: el equipo no le vio sentido (2026-08-30)
+
+**Reversión de la decisión anterior.** Se implementó por completo (Keystore
+local + login anónimo de Supabase + tabla `claves_api` con RLS + el único
+archivo Kotlin del proyecto) y funcionaba, pero al probarlo el equipo decidió
+quitarlo: no le vieron sentido a un respaldo que, tal como quedó diseñado
+(sin login real), solo se puede recuperar en el mismo teléfono — no resolvía
+un problema que realmente tuvieran.
+
+Se quitó por completo: `SupabaseClaveSync.kt`, la carpeta `supabase/`, las
+dependencias de Supabase/Ktor/kotlinx-serialization y el plugin de Kotlin de
+`build.gradle` y `libs.versions.toml`, la sección "Copia en la nube" de
+Ajustes, y `SUPABASE_URL`/`SUPABASE_ANON_KEY` de `local.properties`. El
+proyecto vuelve a ser 100 % Java. Queda la clave por usuario cifrada
+**localmente** (Parte 1 de esa tanda), que sí se quedó — es la que resuelve
+el problema real (no depender de una clave compilada y compartida).
+
+## Se quitó también la clave compilada de respaldo (2026-08-30)
+
+Con la pantalla de Ajustes ya probada y funcionando, `ClaveCompilada` (leía
+`GEMINI_API_KEY` de `local.properties` vía `BuildConfig`) dejó de tener
+motivo para existir: era solo una comodidad para desarrollar sin abrir
+Ajustes, pero significaba que el APK podía llevar una clave dentro
+extraíble descomprimiéndolo — justo el riesgo que la pantalla de Ajustes se
+creó para eliminar.
+
+Se quitó `ClaveCompilada.java`; `ClaveUsuario` (única implementación de
+`ProveedorClave` que queda) ya no cae a ningún respaldo — devuelve `null` si
+no hay clave guardada, y `ChatActivity` ya sabe mostrar el aviso de "añade tu
+clave" en ese caso. También se quitó el bloque que leía `local.properties` y
+el `buildConfigField`/`buildFeatures.buildConfig` de `build.gradle`, ya sin
+uso. Para desarrollar ahora hace falta guardar la clave una vez desde
+Ajustes, igual que hará cualquier persona que use la app.
+
+## "No se pudo reconocer la voz" cerraba la app — causa real, con teléfono conectado
+
+La corrección de `reconocedor.cancel()` antes de cada `startListening()` (ver
+más abajo, se mantiene, no está de más) **no era la causa real**. Se
+confirmó conectando el teléfono del usuario por USB y viendo `adb logcat`
+en vivo mientras se reproducía el fallo:
+
+```
+W/RemoteSpeechRecognitionService: #stopListening called with no preceding
+    #startListening - ignoring
+```
+
+repetido **cientos de veces en poco más de un segundo**, seguido de un
+aluvión de `E/NotificationService: Package has already queued 5 toasts.
+Not showing more.` — un bucle descontrolado que satura el hilo principal y
+tumba la app. Causa exacta: `detenerReconocimiento()` llamaba a
+`reconocedor.stopListening()` sin comprobar si de verdad había una sesión
+activa. En este teléfono (Infinix/Transsion, `RemoteSpeechRecognitionService`
+de `com.google.android.as`), llamar a `stopListening()` sin sesión activa
+dispara `onError()` de inmediato — y como `onError()` también llama a
+`detenerReconocimiento()`, se entra en una recursión: parar → error → parar
+→ error… cientos de veces por segundo, cada una con su propio `Toast`.
+
+**Corrección real**: `detenerReconocimiento()` ahora empieza con
+`if (!escuchando) return;` — una guarda de idempotencia. La primera llamada
+sí para el reconocedor; cualquier llamada repetida (incluida la que viene
+del `onError()` disparado por la propia llamada a `stopListening()`) no hace
+nada. Se probó en el dispositivo real después del arreglo: el mismo
+`ERROR_CLIENT` (código 5) que antes tumbaba la app ahora se queda en un
+solo evento — la pantalla de voz pasa a "Toca el círculo para seguir
+hablando" y la app sigue viva (mismo PID antes y después).
+
+**Lección**: la hipótesis inicial (la corregida con `cancel()`) sonaba
+razonable pero no era la causa — hizo falta el log real del dispositivo
+para encontrarla. Vale la pena recordarlo la próxima vez que aparezca un
+error intermitente de voz: pedir el `adb logcat` antes de adivinar.
+
+## `cancel()` antes de cada `startListening()` (se mantiene, aunque no era la causa)
+
+Sigue siendo una limpieza defensiva razonable: descarta cualquier resto de
+una sesión anterior antes de empezar una nueva, sin costo real.
+
+## La cámara sigue la rotación del teléfono
+
+`MainActivity` estaba fijada a `portrait`. Pasó a `android:screenOrientation
+="fullSensor"`, con `android:configChanges="orientation|screenSize|
+screenLayout|keyboardHidden"` para que la Activity **no se recree** al girar
+—recargar el modelo de 9 MB y volver a atar la cámara en cada giro sería
+lento y notorio, y interrumpiría un análisis de frame a medio camino.
+
+Con la Activity persistente, CameraX no se entera sola del nuevo ángulo: hay
+que avisarle. `onConfigurationChanged` llama a
+`preview.setTargetRotation(...)` y `analisis.setTargetRotation(...)` con la
+rotación de la pantalla en ese momento. `Detector`/`aBitmapRotado` ya sabían
+rotar el bitmap según `ImageInfo.getRotationDegrees()` —ese valor es
+justamente lo que cambia al avisarle a `ImageAnalysis` la nueva rotación—,
+así que no hizo falta tocar la lógica de rotación del bitmap ni la del
+letterbox, solo mantener a CameraX al día del ángulo actual.
+
+## La referencia real del menú tipo Instagram, y por qué se dejó la tira igual
+
+La captura que mandó el usuario mostraba un patrón distinto al que se había
+interpretado: una barra de navegación inferior de 5 iconos con un botón
+central elevado (CTA), pensada para una app de catálogo/venta (Inicio,
+Favoritos, botón central, Órdenes, Perfil).
+
+**Decisión (2026-08-30): se deja la tira de equipos estilo Historias tal
+como está.** Ese patrón de 5 pestañas no encaja aquí — la app no tiene
+catálogo, favoritos ni perfil, y forzarlo habría significado inventar
+pantallas fuera de alcance solo para llenar los espacios. La tira actual ya
+resuelve el caso real sin depender de tener varios equipos a la vez: se
+oculta sola si no hay detecciones y muestra un solo círculo cuando solo hay
+uno enfocado, que es el uso más común.
+
+## Modo de voz persistente: quedarse en el diálogo toda la conversación
+
+El círculo de voz cerraba el diálogo apenas terminaba de reconocer una
+frase, así que cada pregunta obligaba a volver a la pantalla de texto y
+tocar el micrófono de nuevo. Se cambió para que el diálogo se quede abierto
+durante toda la conversación hablada:
+
+`escuchando` → `Rumi está pensando…` (pulso automático, no hay volumen real
+que mostrar mientras se espera la respuesta) → `Hablando…` (Rumi lee la
+respuesta, mismo pulso automático porque `TextToSpeech` de Android no
+expone su amplitud) → reposo con "Toca el círculo para seguir hablando".
+Tocar el círculo en reposo vuelve a escuchar sin cerrar nada.
+
+Para saber cuándo Rumi termina de hablar (y volver a reposo) se le añadió
+un `UtteranceProgressListener` al `TextToSpeech`, que antes no tenía
+ninguno — sin eso no había forma de saber cuándo el círculo debía dejar de
+pulsar. `detenerEscucha()` se separó en dos: `detenerReconocimiento()`
+(deja de escuchar, el diálogo se queda) y `cerrarModoVoz()` (cierra todo,
+solo para "Cancelar" o salir de la pantalla).
+
+**Sobre usar la voz nativa de Gemini (Live API) para esto en vez de
+`SpeechRecognizer`+`TextToSpeech`:** se investigó porque el usuario
+preguntó si ya se usaba el SDK de Gemini para la voz. No se usa — hoy toda
+la voz es nativa de Android, Gemini solo entra para el texto (REST + File
+Search). El Live API de Gemini existe y da conversación de voz en tiempo
+real mucho más natural, pero **no soporta File Search** (confirmado en la
+documentación oficial: "File Search is not yet supported in the Live
+API"). Cambiarse a él dejaría a Rumi sin el RAG que le impide inventar
+datos de los equipos — literalmente el problema que la instrucción del
+sistema y el filtro por metadatos ya resolvieron y que está probado que
+pasa sin ellos (ver "La instrucción del sistema es lo que impide
+inventar"). Por eso se descarta, no por preferencia: es la misma clase de
+decisión que ya se tomó con el SDK de Android para el chat de texto.
+
+## Rumi preguntaba "¿a qué equipo te refieres?" con un equipo ya seleccionado
+
+El usuario notó que, hablando con Rumi desde un equipo ya detectado, las
+respuestas "se salían de contexto". Probado en el teléfono conectado: la
+pregunta genérica "para que sirve este equipo" (sin nombrar ningún equipo),
+con el filtro ya puesto en `ankom_estufa`, devolvía:
+
+> "¿A qué equipo te refieres? Por favor, indícame el nombre del equipo... (si
+> se trata de una estufa, especifica si es la Estufa de Secado ANKOM o la
+> Estufa Universal MEMMERT)..."
+
+El log confirmó que el filtro por metadatos **sí se estaba mandando bien**
+(`Consulta acotada a ankom_estufa`) — la búsqueda por vectores/ID de
+documento nunca falló. El problema estaba en un lugar completamente aparte:
+la instrucción del sistema (texto fijo que se manda en cada llamada, al
+margen de qué documentos recupera la búsqueda) decía sin condición *"hay dos
+estufas, si preguntan por 'la estufa' pregunta cuál es"*. El modelo obedecía
+esa instrucción al pie de la letra sin importar que la búsqueda ya viniera
+acotada a una sola ficha — como si a alguien le dieras el libro correcto en
+la mano pero igual le insistieras "confirma cuál libro es" antes de dejarlo
+leer.
+
+**Corrección**: la instrucción ahora se arma en dos partes
+(`INSTRUCCION_BASE` + un cierre que cambia según `equipoFiltro`):
+- **Sin filtro** (chat general): se mantiene "hay dos estufas, pregunta cuál"
+  — ahí el modelo de verdad no sabe a cuál se refiere la persona.
+- **Con filtro activo**: en su lugar, "la búsqueda ya está acotada al equipo
+  seleccionado; aunque digan 'este equipo' o no lo nombren, NO preguntes cuál
+  es, respóndelo directamente."
+
+Se corrigió en `AsistenteGemini.java` y en `gestion_almacenes/gestionar.py`
+(misma instrucción en los dos, por convención ya documentada). **Verificado
+de punta a punta en el dispositivo real**, reintentando tras un par de 503
+transitorios de Google: la misma pregunta ahora responde *"Esta respuesta
+corresponde a la Estufa de Secado ANKOM"* con datos reales y su fuente
+citada, sin volver a preguntar cuál equipo es.
+
+## Voz de Rumi elegible en Ajustes
+
+El usuario pidió una voz "más tierna" para Rumi. En vez de que se elija una
+sola voz a mano para todo el mundo (el gusto es personal y las voces
+instaladas varían por teléfono), se armó una sección nueva en Ajustes donde
+cada persona prueba y elige la suya.
+
+`VozRumi` arma la lista consultando `TextToSpeech.getVoices()` **en tiempo
+de ejecución** — nunca una lista fija: en el teléfono de prueba salieron 6
+voces de España y 5 de Latinoamérica, más de las que se habían probado a
+mano al principio. Se descartan los duplicados "-network" cuando ya existe
+el mismo "-local" (más rápida, no depende de conexión). La elegida se
+guarda en `SharedPreferences` y `ChatActivity` la aplica al iniciar el
+sintetizador; si no hay ninguna guardada, se queda con la que el sistema
+puso por defecto.
+
+## Las respuestas de Rumi mostraban el Markdown crudo
+
+Gemini responde en Markdown (negrita con `**así**`, listas con `- `), y el
+`TextView` del chat lo mostraba tal cual, asteriscos incluidos. Se agregó
+Markwon (`io.noties.markwon:core`), una librería hecha para esto en
+Android: convierte el Markdown a `Spannable` nativo sin WebView. Cambio
+mínimo: `ChatAdapter` recibe un `Markwon` (creado una vez, no por mensaje) y
+usa `markwon.setMarkdown(texto, m.texto)` en vez de `texto.setText(...)`.
+Verificado en el dispositivo real: la negrita y las viñetas ya se ven bien.
+
+## Nuevo avatar de Rumi, recortado en círculo y con rebote al hablar
+
+El avatar (un matraz blanco sobre un círculo verde) se reemplazó por
+`icono_chatbot.jpg.jpeg` (en la raíz del proyecto, fuente de `ic_rumi.png`)
+— una carita de chatbot en una burbuja de chat, mucho más acorde a "Rumi es
+un asistente de IA tierno". Venía en celeste; se recoloreó rotando el tono
+(HSV, -45°) hacia el verde institucional con un script de un solo uso, sin
+tocar el degradado ni las sombras del diseño original.
+
+**El icono nuevo trae su propio fondo cuadrado** (a diferencia del anterior,
+que ya era un círculo con transparencia alrededor), así que hubo que
+recortarlo a círculo en cada sitio donde se usa — si no, se verían las
+esquinas color crema asomando detrás del anillo dorado. En XML
+(`activity_chat.xml`, `item_mensaje.xml`, `modal_equipo.xml`) con
+`clipToOutline="true"` + `scaleType="centerCrop"` sobre un fondo circular.
+En `CirculoVozView`, que dibuja el drawable directo en el `Canvas` sin pasar
+por ningún `ImageView`, el recorte se hizo a mano con `Canvas.clipPath`.
+
+**Rebote al hablar** (pedido del usuario: "que se mueva... para dar un
+poco de realismo"): en vez de un GIF con fotogramas nuevos —fragil de hacer
+bien partiendo de una sola imagen plana, sin capas separadas para ojos o
+boca—, se animó la propia imagen con `ValueAnimator` nativo de Android:
+`CirculoVozView.setEscalaAvatar()` escala el ícono entero alrededor de su
+centro. Se activa solo mientras Rumi habla de verdad
+(`iniciarAnimacionHabla`, ligado al `UtteranceProgressListener` del
+`TextToSpeech`), no mientras "piensa" — así el movimiento significa algo
+("Rumi está hablando"), no es decoración sin motivo. Los anillos, aparte,
+siguen respondiendo al volumen real cuando quien habla es el usuario.
+
+## Modo oscuro con interruptor manual en Ajustes
+
+Se agregó una sección "Apariencia" en Ajustes con tres opciones (Claro /
+Oscuro / Seguir el sistema), pedido explícito del usuario tras confirmarlo
+("interruptor manual en Ajustes con las tres opciones").
+
+**Qué se tocó y qué no**: solo se sobreescriben los tokens de superficie y
+texto en `values-night/colors.xml` (`fondo`, `superficie`, `borde`,
+`texto_principal`, `texto_secundario`, `splash_fondo`). El verde
+institucional, el dorado y las tarjetas de acento (verde claro, dorado
+claro) se dejan igual en ambos modos a propósito: esos colores hoy cumplen
+doble función —de relleno (botones, cabecera) y de texto/ícono sobre
+tarjetas claras (chips, tarjetas de acento)— así que invertirlos de golpe
+sin auditar cada uso habría arriesgado combinaciones ilegibles. El costo
+aceptado es que algunos chips de acento se ven "claros" flotando sobre el
+fondo oscuro, un patrón común y más seguro que rediseñar cada combinación.
+
+**Persistencia**: `AppCompatDelegate.setDefaultNightMode()` solo vive en
+memoria — sin guardarlo aparte, la app volvería a "seguir el sistema" cada
+vez que el proceso muriera. Se agregó `TemaApp` (guarda/lee el modo en
+`SharedPreferences`) y `RumiologiaApp` (subclase de `Application`,
+registrada en el manifest con `android:name=".RumiologiaApp"`) que aplica
+el modo guardado en `onCreate()`, antes de que se infle cualquier
+`Activity`.
+
+En `AjustesActivity`, el `RadioGroup` nuevo llama a `TemaApp.guardar()` y
+luego a `recreate()` para que el cambio se vea al instante, sin tener que
+volver a entrar a la pantalla. **Verificado en el dispositivo real**: con
+"Claro" fuerza modo claro sin importar el tema del sistema (que en ese
+momento estaba en oscuro), y con "Oscuro" fuerza modo oscuro también sin
+importar el sistema — confirmando que las tres opciones son independientes
+entre sí y no solo un reflejo del ajuste del teléfono.
+
 ## Pendiente
 
-- Proteger la clave de la API (hoy compilada en el APK).
 - Ajustar el presupuesto de razonamiento: entre 403 y 638 tokens por consulta que no
   aportan nada cuando la respuesta sale de un documento.
 - Streaming de respuestas.

@@ -69,7 +69,7 @@ public class AsistenteGemini implements AsistenteIA {
      * <p>Debe decir lo mismo que la de {@code gestion_almacenes/gestionar.py}, que se
      * usa para probar las consultas fuera de la app.
      */
-    private static final String INSTRUCCION =
+    private static final String INSTRUCCION_BASE =
             "Eres el asistente del laboratorio de Rumiología. Ayudas a estudiantes a "
                     + "entender y operar los equipos del laboratorio.\n\n"
                     + "Respondes ÚNICAMENTE con la información de las fichas técnicas que la "
@@ -85,11 +85,34 @@ public class AsistenteGemini implements AsistenteIA {
                     + "que se pregunta, menciónala aunque no te la hayan pedido.\n"
                     + "- Di a qué equipo corresponde tu respuesta: el usuario puede no tenerlo "
                     + "delante.\n"
-                    + "- Hay DOS estufas distintas (Estufa de Secado ANKOM y Estufa Universal "
-                    + "MEMMERT). Si la pregunta dice solo \"la estufa\", pregunta a cuál se "
-                    + "refiere antes de responder.\n"
                     + "- Responde en español, breve y directo, como a un estudiante.\n"
                     + "- Las respuestas se leen en voz alta: evita tablas y listas muy largas.";
+
+    /**
+     * Solo se agrega cuando NO hay un equipo ya seleccionado (chat general, sin
+     * cámara delante): ahí el modelo de verdad no sabe a qué estufa se refiere la
+     * pregunta.
+     */
+    private static final String INSTRUCCION_DESAMBIGUAR_ESTUFAS =
+            "\n- Hay DOS estufas distintas (Estufa de Secado ANKOM y Estufa Universal "
+                    + "MEMMERT). Si la pregunta dice solo \"la estufa\" sin más contexto, "
+                    + "pregunta a cuál se refiere antes de responder.";
+
+    /**
+     * Solo se agrega cuando SÍ hay un equipo ya seleccionado.
+     *
+     * <p>Bug real encontrado probando en un dispositivo conectado: sin esta frase, el
+     * modelo preguntaba "¿a qué equipo te refieres?" aunque la búsqueda ya estuviera
+     * acotada por metadatos al equipo detectado — porque la regla de arriba
+     * ("hay dos estufas, pregunta cuál") se mandaba siempre, sin condicionarla a que
+     * ya hubiera un filtro activo. El modelo obedecía la instrucción al pie de la
+     * letra e ignoraba que la búsqueda ya venía limitada a una sola ficha.
+     */
+    private static final String INSTRUCCION_EQUIPO_YA_SELECCIONADO =
+            "\n- La búsqueda ya está acotada al equipo que la persona tiene seleccionado "
+                    + "o delante de la cámara. Aunque la pregunta diga \"este equipo\", \"el "
+                    + "equipo\" o no lo nombre, NO preguntes a qué equipo se refiere: ya se "
+                    + "sabe cuál es. Respóndela directamente con la ficha recuperada.";
 
     private final GeminiApi api;
     private final ProveedorClave proveedorClave;
@@ -122,8 +145,8 @@ public class AsistenteGemini implements AsistenteIA {
 
         String clave = proveedorClave.obtener();
         if (TextUtils.isEmpty(clave)) {
-            callback.onError("Falta la clave de la API. Añádela en local.properties "
-                    + "como GEMINI_API_KEY y vuelve a compilar.");
+            callback.onError("Falta la clave de la API. Configúrala en Ajustes "
+                    + "para poder hablar con Rumi.");
             return;
         }
 
@@ -153,7 +176,10 @@ public class AsistenteGemini implements AsistenteIA {
     private GeminiDto.Peticion construirPeticion(String pregunta, @Nullable String equipoFiltro,
                                                  List<Turno> historial) {
         GeminiDto.Peticion peticion = new GeminiDto.Peticion();
-        peticion.systemInstruction = GeminiDto.Contenido.sistema(INSTRUCCION);
+        String instruccion = INSTRUCCION_BASE + (equipoFiltro != null
+                ? INSTRUCCION_EQUIPO_YA_SELECCIONADO
+                : INSTRUCCION_DESAMBIGUAR_ESTUFAS);
+        peticion.systemInstruction = GeminiDto.Contenido.sistema(instruccion);
 
         if (historial != null) {
             int desde = Math.max(0, historial.size() - MAX_TURNOS);

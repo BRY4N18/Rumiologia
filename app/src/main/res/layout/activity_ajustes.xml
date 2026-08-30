@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Pantalla donde cada persona pone su propia clave de Gemini. Sigue las mismas
+  guías de identidad que el resto de la app: cabecera verde institucional, fondo
+  gris claro y tarjetas blancas agrupadas por sección.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/ajustesRaiz"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/fondo">
+
+    <!-- Cabecera -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/chat_cabecera"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="8dp">
+
+        <ImageButton
+            android:id="@+id/ajustesBotonAtras"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:contentDescription="@string/ajustes_desc_atras"
+            app:tint="@android:color/white" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="@string/ajustes_titulo"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:letterSpacing="0.06"
+                android:text="@string/ajustes_seccion_clave"
+                android:textColor="@color/texto_secundario"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/tarjeta_blanca"
+                android:padding="18dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <EditText
+                        android:id="@+id/ajustesEntradaClave"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/campo_entrada"
+                        android:hint="@string/ajustes_clave_hint"
+                        android:importantForAutofill="no"
+                        android:inputType="textPassword"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="12dp"
+                        android:textColor="@color/texto_principal"
+                        android:textColorHint="@color/texto_secundario"
+                        android:textSize="14sp" />
+
+                    <ImageButton
+                        android:id="@+id/ajustesBotonMostrar"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="2dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_view"
+                        android:contentDescription="@string/ajustes_desc_mostrar"
+                        app:tint="@color/texto_secundario" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/ajustes_clave_ayuda"
+                    android:textColor="@color/texto_secundario"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <View
+                        android:id="@+id/ajustesPuntoEstado"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:background="@drawable/punto_estado_gris" />
+
+                    <TextView
+                        android:id="@+id/ajustesTextoEstado"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:textColor="@color/texto_secundario"
+                        android:textSize="12sp"
+                        tools:text="Sin clave configurada" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/ajustesBotonGuardar"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/tarjeta_verde"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:padding="14dp"
+                        android:text="@string/ajustes_guardar"
+                        android:textColor="@color/verde_institucional"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/ajustesBotonQuitar"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/tarjeta_gris"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:padding="14dp"
+                        android:text="@string/ajustes_quitar"
+                        android:textColor="@color/texto_secundario" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="10dp"
+                android:letterSpacing="0.06"
+                android:text="@string/ajustes_seccion_apariencia"
+                android:textColor="@color/texto_secundario"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <RadioGroup
+                android:id="@+id/ajustesGrupoTema"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/tarjeta_blanca"
+                android:padding="6dp">
+
+                <RadioButton
+                    android:id="@+id/ajustesTemaClaro"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:text="@string/ajustes_tema_claro"
+                    android:textColor="@color/texto_principal"
+                    android:textSize="14sp" />
+
+                <RadioButton
+                    android:id="@+id/ajustesTemaOscuro"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:text="@string/ajustes_tema_oscuro"
+                    android:textColor="@color/texto_principal"
+                    android:textSize="14sp" />
+
+                <RadioButton
+                    android:id="@+id/ajustesTemaSistema"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:text="@string/ajustes_tema_sistema"
+                    android:textColor="@color/texto_principal"
+                    android:textSize="14sp" />
+            </RadioGroup>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="10dp"
+                android:letterSpacing="0.06"
+                android:text="@string/ajustes_seccion_voz"
+                android:textColor="@color/texto_secundario"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/tarjeta_blanca"
+                android:padding="10dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:text="@string/ajustes_voz_ayuda"
+                    android:textColor="@color/texto_secundario"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:id="@+id/ajustesListaVoces"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

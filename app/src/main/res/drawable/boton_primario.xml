@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Boton de accion principal, solido, para pantallas fuera del flujo de deteccion -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/verde_institucional" />
+    <corners android:radius="16dp" />
+</shape>

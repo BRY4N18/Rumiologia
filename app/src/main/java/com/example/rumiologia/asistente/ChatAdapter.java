@@ -1,5 +1,6 @@
 package com.example.rumiologia.asistente;
 
+import android.content.Context;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +15,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.rumiologia.R;
 
+import io.noties.markwon.Markwon;
+
 import java.util.List;
 
 /**
@@ -23,13 +26,19 @@ import java.util.List;
  * alineación, el fondo, el color del texto y el avatar según el origen. Con tres
  * variantes tan parecidas, tener tres layouts distintos sería más código para el
  * mismo resultado.
+ *
+ * <p>El texto se renderiza con {@link Markwon}: Gemini responde en Markdown
+ * (negrita, listas), y sin esto el usuario vería los asteriscos literales
+ * (<code>**así**</code>) en vez de negrita de verdad.
  */
 public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.Celda> {
 
     private final List<Mensaje> mensajes;
+    private final Markwon markwon;
 
-    public ChatAdapter(List<Mensaje> mensajes) {
+    public ChatAdapter(Context contexto, List<Mensaje> mensajes) {
         this.mensajes = mensajes;
+        this.markwon = Markwon.create(contexto);
     }
 
     @NonNull
@@ -42,7 +51,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.Celda> {
 
     @Override
     public void onBindViewHolder(@NonNull Celda celda, int posicion) {
-        celda.mostrar(mensajes.get(posicion));
+        celda.mostrar(mensajes.get(posicion), markwon);
     }
 
     @Override
@@ -67,7 +76,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.Celda> {
             fuentes = v.findViewById(R.id.mensajeFuentes);
         }
 
-        void mostrar(Mensaje m) {
+        void mostrar(Mensaje m, Markwon markwon) {
             boolean esUsuario = m.origen == Mensaje.Origen.USUARIO;
             boolean esError = m.origen == Mensaje.Origen.ERROR;
 
@@ -98,7 +107,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.Celda> {
                 texto.setText(R.string.chat_escribiendo);
                 texto.setAlpha(0.6f);
             } else {
-                texto.setText(m.texto);
+                markwon.setMarkdown(texto, m.texto);
                 texto.setAlpha(1f);
             }
 

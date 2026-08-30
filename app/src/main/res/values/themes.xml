@@ -38,6 +38,18 @@
         <item name="android:background">@android:color/transparent</item>
     </style>
 
+    <!--
+      Tema del dialogo de voz: pantalla completa, sin la tarjeta flotante que
+      trae un dialogo comun. windowIsFloating=false hace que ocupe toda la
+      pantalla en vez de encogerse al contenido; el fondo real lo pinta el
+      propio layout (verde_oscuro), no el tema.
+    -->
+    <style name="Theme.Rumiologia.DialogoVoz" parent="Theme.Material3.DayNight.Dialog">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
     <style name="Theme.Rumiologia.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_fondo</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/logo_splash</item>

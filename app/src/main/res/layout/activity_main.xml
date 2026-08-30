@@ -27,19 +27,71 @@
         app:layout_constraintStart_toStartOf="@id/previewView"
         app:layout_constraintEnd_toEndOf="@id/previewView" />
 
+    <!-- Marco decorativo, puramente visual: no participa en la deteccion ni los toques -->
+    <com.example.rumiologia.MarcoEscaneoView
+        android:id="@+id/marcoEscaneo"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="@id/previewView"
+        app:layout_constraintBottom_toBottomOf="@id/previewView"
+        app:layout_constraintStart_toStartOf="@id/previewView"
+        app:layout_constraintEnd_toEndOf="@id/previewView" />
+
+    <!-- Enciende o apaga el flash. Se oculta si el dispositivo no tiene -->
+    <ImageButton
+        android:id="@+id/botonFlash"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_margin="12dp"
+        android:background="@drawable/boton_circular_translucido"
+        android:contentDescription="@string/main_desc_flash"
+        android:src="@drawable/ic_flash"
+        android:visibility="gone"
+        app:tint="@android:color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Abre la pantalla donde cada persona pone su propia clave de Gemini -->
+    <ImageButton
+        android:id="@+id/botonAjustes"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_margin="12dp"
+        android:background="@drawable/boton_circular_translucido"
+        android:contentDescription="@string/main_desc_ajustes"
+        android:src="@android:drawable/ic_menu_preferences"
+        app:tint="@android:color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Equipos detectados en el frame actual, estilo Historias. Oculta si no hay ninguno -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/listaEquiposDetectados"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:clipToPadding="false"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/statusText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- Estado del detector y latencia -->
     <TextView
         android:id="@+id/statusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="12dp"
-        android:background="@color/overlay_scrim"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="6dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/pildora_estado"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp"
         android:text="@string/estado_iniciando"
         android:textColor="@android:color/white"
         android:textSize="12sp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

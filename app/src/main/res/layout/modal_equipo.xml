@@ -25,6 +25,18 @@
         android:layout_marginBottom="18dp"
         android:background="@drawable/asa_modal" />
 
+    <!-- Foto representativa del equipo; se oculta si no hay una -->
+    <ImageView
+        android:id="@+id/modalFotoEquipo"
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/tarjeta_gris"
+        android:clipToOutline="true"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        tools:ignore="ContentDescription" />
+
     <TextView
         android:id="@+id/modalChipConfianza"
         android:layout_width="wrap_content"
@@ -117,6 +129,9 @@
             android:id="@+id/modalIconoRumi"
             android:layout_width="26dp"
             android:layout_height="26dp"
+            android:background="@drawable/circulo_blanco"
+            android:clipToOutline="true"
+            android:scaleType="centerCrop"
             android:src="@drawable/ic_rumi"
             android:contentDescription="@null" />
 

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Avatar de Rumi en la cabecera del chat, con un anillo dorado -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/superficie" />
+    <stroke android:width="2dp" android:color="@color/dorado" />
+</shape>

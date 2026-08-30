@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Paleta oscura. Solo se invierten las superficies y el texto (fondo, tarjetas,
+  bordes, texto principal/secundario): el verde institucional y el dorado se
+  quedan igual en ambos modos porque ya tienen contraste de sobra sobre cualquier
+  fondo — son los mismos colores que hoy se usan como texto/ícono sobre tarjetas
+  claras, así que oscurecer esas tarjetas también los habría vuelto ilegibles.
+  Las tarjetas de acento (verde claro, dorado claro) tampoco se tocan a propósito:
+  quedan como chips vivos flotando sobre el fondo oscuro, un patrón común en modo
+  oscuro y mucho más seguro que rediseñar cada combinación de texto sobre tarjeta.
+-->
+<resources>
+    <color name="fondo">#FF121513</color>
+    <color name="superficie">#FF1C201D</color>
+    <color name="borde">#FF2E332F</color>
+    <color name="texto_principal">#FFF0F2F0</color>
+    <color name="texto_secundario">#FF9BA39E</color>
+    <color name="splash_fondo">#FF121513</color>
+</resources>

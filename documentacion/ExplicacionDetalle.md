@@ -368,7 +368,8 @@ asistente/
    ├─ AsistenteIA          interfaz: qué es "un asistente"
    ├─ RespuestaAsistente   lo que devuelve, en términos del dominio
    ├─ ProveedorClave       interfaz: de dónde sale la API key
-   ├─ ClaveCompilada       implementación actual (local.properties)
+   ├─ ClaveUsuario         implementación actual (clave guardada en Ajustes)
+   ├─ AlmacenClaves        cifra/guarda/lee esa clave (Android Keystore)
    ├─ ReglaDeAlcance       decide si filtrar (pura, sin Android)
    ├─ AlcanceConsulta      adapta la regla a los datos de la app
    ├─ FabricaAsistente     único sitio que sabe qué implementación se usa
@@ -395,14 +396,14 @@ Texto y fuentes. Existe para que la pantalla no manipule las clases del JSON de 
 proveedor: si Gemini cambia la forma de su respuesta, se ajusta la traducción en un
 solo sitio.
 
-### `ProveedorClave` y `ClaveCompilada`
+### `ProveedorClave` y `ClaveUsuario`
 
-Una interfaz de una sola función. Hoy la clave se compila desde `local.properties`;
-está previsto moverla a Supabase o pedírsela al usuario. Cada opción será otra
-implementación, y nada más cambiará.
-
-`ClaveCompilada` devuelve `null` si no hay clave, y quien la usa avisa al usuario en
-vez de reventar.
+`ProveedorClave` es una interfaz de una sola función: de dónde sale la API key. La
+única implementación, `ClaveUsuario`, lee la clave que la persona pegó en Ajustes
+(vía `AlmacenClaves`, cifrada con AES-256-GCM y una llave del Android Keystore) y
+devuelve `null` si no hay ninguna guardada — quien la usa avisa al usuario en vez de
+reventar. No hay clave compilada ni de respaldo: sin abrir Ajustes una vez, la app no
+tiene con qué hablarle a Gemini.
 
 ### `ReglaDeAlcance.java` — Decidir dónde buscar
 

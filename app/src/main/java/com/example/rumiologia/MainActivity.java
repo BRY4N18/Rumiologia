@@ -1,11 +1,17 @@
 package com.example.rumiologia;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -13,6 +19,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -24,13 +31,21 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.splashscreen.SplashScreen;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.widget.ImageViewCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.rumiologia.ajustes.AjustesActivity;
 import com.example.rumiologia.fichas.ModalEquipo;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -56,9 +71,23 @@ public class MainActivity extends AppCompatActivity {
     private PreviewView previewView;
     private OverlayView overlayView;
     private TextView statusText;
+    private ImageButton botonFlash;
+    private RecyclerView listaEquipos;
+    private AdaptadorChipsEquipo adaptadorChips;
+
+    /** Último conjunto de clases mostrado en la tira, para no repintar cada frame. */
+    private List<String> ultimosSlugsMostrados = Collections.emptyList();
 
     private ExecutorService ejecutorAnalisis;
     private Detector detector;
+
+    /** La cámara ya vinculada; se guarda para poder encender/apagar el flash. */
+    private Camera camara;
+    private boolean flashActiva = false;
+
+    /** Se guardan para poder avisarles el nuevo ángulo cuando gira el teléfono. */
+    private Preview preview;
+    private ImageAnalysis analisis;
 
     /** Bitmap reutilizado entre frames para no crear basura en cada iteracion. */
     private Bitmap bufferFrame;
@@ -92,18 +121,45 @@ public class MainActivity extends AppCompatActivity {
         previewView = findViewById(R.id.previewView);
         overlayView = findViewById(R.id.overlayView);
         statusText = findViewById(R.id.statusText);
+        botonFlash = findViewById(R.id.botonFlash);
+
+        ImageButton botonAjustes = findViewById(R.id.botonAjustes);
+        botonAjustes.setOnClickListener(v ->
+                startActivity(new Intent(this, AjustesActivity.class)));
+        botonFlash.setOnClickListener(v -> alternarFlash());
+
+        // Márgenes fijados en el XML: se guardan antes de que el listener de insets
+        // los modifique, para no ir sumando la barra de estado cada vez que se
+        // dispare (p. ej. al rotar la pantalla).
+        int margenBaseAjustes =
+                ((ViewGroup.MarginLayoutParams) botonAjustes.getLayoutParams()).topMargin;
+        int margenBaseFlash =
+                ((ViewGroup.MarginLayoutParams) botonFlash.getLayoutParams()).topMargin;
+        int margenBaseEstado =
+                ((ViewGroup.MarginLayoutParams) statusText.getLayoutParams()).bottomMargin;
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            statusText.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
+
+            desplazarMargenSuperior(botonAjustes, margenBaseAjustes, systemBars.top);
+            desplazarMargenSuperior(botonFlash, margenBaseFlash, systemBars.top);
+
+            ViewGroup.MarginLayoutParams parametrosEstado =
+                    (ViewGroup.MarginLayoutParams) statusText.getLayoutParams();
+            parametrosEstado.bottomMargin = margenBaseEstado + systemBars.bottom;
+            statusText.setLayoutParams(parametrosEstado);
             return insets;
         });
 
-        // Tocar una caja abre la hoja con los dos caminos: ficha tecnica (sin
-        // internet) o chat con Rumi (con internet).
-        overlayView.setOnDetectionClickListener(deteccion ->
-                ModalEquipo.mostrar(getSupportFragmentManager(),
-                        deteccion.label, deteccion.score));
+        // Tocar una caja, o su chip en la tira de abajo, abre la hoja con los dos
+        // caminos: ficha tecnica (sin internet) o chat con Rumi (con internet).
+        overlayView.setOnDetectionClickListener(this::mostrarModalEquipo);
+
+        listaEquipos = findViewById(R.id.listaEquiposDetectados);
+        listaEquipos.setLayoutManager(
+                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        adaptadorChips = new AdaptadorChipsEquipo(this::mostrarModalEquipo);
+        listaEquipos.setAdapter(adaptadorChips);
 
         ejecutorAnalisis = Executors.newSingleThreadExecutor();
         prepararDetector();
@@ -114,6 +170,10 @@ public class MainActivity extends AppCompatActivity {
         } else {
             pedirPermisoCamara.launch(Manifest.permission.CAMERA);
         }
+    }
+
+    private void mostrarModalEquipo(Detection deteccion) {
+        ModalEquipo.mostrar(getSupportFragmentManager(), deteccion.label, deteccion.score);
     }
 
     /**
@@ -153,17 +213,67 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void vincularCasosDeUso(@NonNull ProcessCameraProvider proveedor) {
-        Preview preview = new Preview.Builder().build();
+        preview = new Preview.Builder().build();
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
-        ImageAnalysis analisis = new ImageAnalysis.Builder()
+        analisis = new ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .build();
         analisis.setAnalyzer(ejecutorAnalisis, this::analizarFrame);
 
         proveedor.unbindAll();
-        proveedor.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analisis);
+        camara = proveedor.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analisis);
+
+        // No todos los dispositivos tienen flash trasero: el botón solo aparece si
+        // el que se está usando lo tiene.
+        if (camara.getCameraInfo().hasFlashUnit()) {
+            botonFlash.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * La Activity no se recrea al girar el teléfono (ver {@code android:configChanges}
+     * en el manifiesto: recargar el modelo de 9 MB y volver a atar la cámara en cada
+     * giro sería lento y notorio). En su lugar, CameraX necesita que se le avise del
+     * nuevo ángulo para que la vista previa y el análisis de frames se orienten con
+     * la pantalla — {@code Detector.aBitmapRotado} ya sabe rotar según lo que reporte
+     * {@code ImageInfo.getRotationDegrees()}, que es justo lo que cambia aquí.
+     */
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration nuevaConfiguracion) {
+        super.onConfigurationChanged(nuevaConfiguracion);
+        if (previewView.getDisplay() == null) {
+            return;
+        }
+        int rotacion = previewView.getDisplay().getRotation();
+        if (preview != null) {
+            preview.setTargetRotation(rotacion);
+        }
+        if (analisis != null) {
+            analisis.setTargetRotation(rotacion);
+        }
+    }
+
+    private void alternarFlash() {
+        if (camara == null || !camara.getCameraInfo().hasFlashUnit()) {
+            return;
+        }
+        flashActiva = !flashActiva;
+        camara.getCameraControl().enableTorch(flashActiva);
+        ImageViewCompat.setImageTintList(botonFlash, ColorStateList.valueOf(
+                getColor(flashActiva ? R.color.dorado : android.R.color.white)));
+    }
+
+    /**
+     * Suma la barra de sistema al margen superior de un botón, sin ir acumulando el
+     * valor cada vez que el listener de insets se vuelve a disparar.
+     */
+    private void desplazarMargenSuperior(View vista, int margenBase, int insetSuperior) {
+        ViewGroup.MarginLayoutParams parametros =
+                (ViewGroup.MarginLayoutParams) vista.getLayoutParams();
+        parametros.topMargin = margenBase + insetSuperior;
+        vista.setLayoutParams(parametros);
     }
 
     /** Se ejecuta en el hilo de analisis, no en el principal. */
@@ -181,12 +291,43 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 overlayView.setResults(detecciones, ancho, alto);
                 actualizarEstado(detecciones.size());
+                actualizarChipsEquipo(detecciones);
             });
         } catch (Exception e) {
             Log.e(TAG, "Fallo analizando el frame", e);
         } finally {
             imagen.close();   // imprescindible: sin esto la camara se congela
         }
+    }
+
+    /**
+     * Refresca la tira de equipos detectados, estilo Historias.
+     *
+     * <p>Se llama en cada frame, así que primero reduce las detecciones a una por
+     * clase (la de mayor confianza) y solo repinta si el conjunto de clases cambió
+     * respecto al frame anterior — de lo contrario la tira parpadearía 20-30 veces
+     * por segundo por pequeñas variaciones de confianza, aunque sean los mismos
+     * equipos. El orden es alfabético por slug (vía {@link TreeMap}), no por
+     * confianza, para que los círculos no se reordenen solos.
+     */
+    private void actualizarChipsEquipo(List<Detection> detecciones) {
+        Map<String, Detection> porSlug = new TreeMap<>();
+        for (Detection d : detecciones) {
+            Detection actual = porSlug.get(d.label);
+            if (actual == null || d.score > actual.score) {
+                porSlug.put(d.label, d);
+            }
+        }
+
+        List<String> slugsActuales = new ArrayList<>(porSlug.keySet());
+        if (slugsActuales.equals(ultimosSlugsMostrados)) {
+            return;
+        }
+        ultimosSlugsMostrados = slugsActuales;
+
+        List<Detection> distintos = new ArrayList<>(porSlug.values());
+        listaEquipos.setVisibility(distintos.isEmpty() ? View.GONE : View.VISIBLE);
+        adaptadorChips.actualizar(distintos);
     }
 
     /**

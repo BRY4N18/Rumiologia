@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.graphics.Bitmap;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -97,8 +98,20 @@ public class ModalEquipo extends BottomSheetDialogFragment {
         ((TextView) vista.findViewById(R.id.modalChipConfianza)).setText(
                 getString(R.string.modal_confianza, Math.round(confianza * 100)));
 
+        configurarFoto(vista, contexto);
         configurarFicha(vista, contexto);
         configurarChat(vista, contexto, nombre);
+    }
+
+    /** Oculta el hueco de la foto en vez de dejarlo vacío si no hay una para esta clase. */
+    private void configurarFoto(View vista, Context contexto) {
+        ImageView foto = vista.findViewById(R.id.modalFotoEquipo);
+        Bitmap bitmap = ImagenesEquipos.obtener(contexto, slug);
+        if (bitmap == null) {
+            foto.setVisibility(View.GONE);
+            return;
+        }
+        foto.setImageBitmap(bitmap);
     }
 
     private void configurarFicha(View vista, Context contexto) {

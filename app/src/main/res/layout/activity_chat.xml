@@ -5,6 +5,7 @@
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/chatRaiz"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -26,7 +27,8 @@
             android:layout_height="40dp"
             android:src="@drawable/ic_rumi"
             android:background="@drawable/circulo_blanco"
-            android:padding="2dp"
+            android:clipToOutline="true"
+            android:scaleType="centerCrop"
             android:contentDescription="@string/chat_desc_avatar" />
 
         <LinearLayout
@@ -54,6 +56,43 @@
                 android:textColor="@color/chat_subtitulo"
                 android:textSize="13sp" />
         </LinearLayout>
+    </LinearLayout>
+
+    <!-- Se muestra solo si no hay ninguna clave de Gemini disponible -->
+    <LinearLayout
+        android:id="@+id/chatBannerSinClave"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        android:background="@drawable/tarjeta_dorada"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="14dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/chat_banner_sin_clave"
+            android:textColor="@color/verde_institucional"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/chatBannerBoton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/chip_verde"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="8dp"
+            android:text="@string/chat_banner_boton"
+            android:textColor="@color/verde_institucional"
+            android:textSize="12sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

@@ -73,7 +73,7 @@ Google Drive. Ver [`ml/README.md`](ml/README.md) para el flujo completo.
 - [x] Fichas técnicas de los 7 equipos
 - [x] Asistente RAG por chat y voz, sin servidor propio
 - [x] Búsqueda acotada al equipo detectado (filtro por metadatos)
-- [ ] Clave de la API protegida (hoy va compilada en el APK)
+- [x] Clave de la API por usuario, cifrada en el dispositivo (pantalla Ajustes)
 - [x] Ficha técnica en PDF, disponible sin conexión
 - [x] Identidad visual del proyecto aplicada
 - [ ] Streaming de respuestas

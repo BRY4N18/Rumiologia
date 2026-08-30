@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Primera pantalla que ve la persona, antes de la cámara. Simple a propósito:
+  logo, nombre, un botón y los créditos abajo. No es el onboarding de varias
+  diapositivas del PDF de referencia — esa idea quedó fuera de alcance.
+
+  El logo+nombre+bajada+botón van en una cadena vertical "packed" (agrupados,
+  no cada uno pegado a un borde) para no dejar un hueco enorme en medio de la
+  pantalla; el pie de página va aparte, anclado abajo.
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/bienvenidaRaiz"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fondo">
+
+    <ImageView
+        android:id="@+id/bienvenidaLogo"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:contentDescription="@null"
+        android:src="@drawable/logo_splash"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bienvenidaNombre"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_chainStyle="packed"
+        app:layout_constraintVertical_bias="0.38" />
+
+    <TextView
+        android:id="@+id/bienvenidaNombre"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="@string/app_name"
+        android:textColor="@color/verde_institucional"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/bienvenidaLogo"
+        app:layout_constraintBottom_toTopOf="@id/bienvenidaBajada"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/bienvenidaBajada"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginHorizontal="40dp"
+        android:gravity="center"
+        android:text="@string/bienvenida_bajada"
+        android:textColor="@color/texto_secundario"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@id/bienvenidaNombre"
+        app:layout_constraintBottom_toTopOf="@id/bienvenidaBoton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/bienvenidaBoton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginTop="48dp"
+        android:background="@drawable/boton_primario"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="@string/bienvenida_boton"
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/bienvenidaBajada" />
+
+    <!-- Pie de página, aparte de la cadena de arriba y siempre anclado abajo -->
+    <LinearLayout
+        android:id="@+id/bienvenidaPie"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginBottom="20dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/bienvenidaDesarrolladoPor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/bienvenida_desarrollado_por"
+            android:textColor="@color/texto_secundario"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/bienvenidaCreditosNombres"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:gravity="center"
+            android:maxLines="1"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="8sp"
+            android:autoSizeMaxTextSize="12sp"
+            android:text="@string/bienvenida_creditos_nombres"
+            android:textColor="@color/texto_secundario" />
+
+        <TextView
+            android:id="@+id/bienvenidaCarrera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:text="@string/bienvenida_carrera"
+            android:textColor="@color/texto_secundario"
+            android:textSize="12sp" />
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:background="@color/borde" />
+
+        <TextView
+            android:id="@+id/bienvenidaDerechos"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:text="@string/bienvenida_derechos"
+            android:textColor="@color/texto_secundario"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

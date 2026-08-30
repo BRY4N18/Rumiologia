@@ -134,17 +134,29 @@ def main() -> int:
             print(f"  - {f}")
 
     # Aviso de desbalance: una clase con muy pocas fotos se detecta mal en la app.
+    OBJETIVO_MIN, OBJETIVO_MAX = 80, 150
     if resumen:
         minimo = min(v[1] for v in resumen.values())
         maximo = max(v[1] for v in resumen.values())
-        print("\nBalance del dataset:")
+        print(f"\nBalance del dataset (objetivo: {OBJETIVO_MIN}-{OBJETIVO_MAX} fotos/clase):")
+        faltan_total = 0
         for nombre, (pref, n, _) in sorted(resumen.items(), key=lambda x: x[1][1]):
-            barra = "#" * max(1, int(30 * n / maximo))
-            alerta = "  <-- POCAS FOTOS" if n < 100 else ""
+            barra = "#" * max(1, int(30 * n / max(maximo, OBJETIVO_MAX)))
+            if n < OBJETIVO_MIN:
+                faltan = OBJETIVO_MIN - n
+                faltan_total += faltan
+                alerta = f"  <-- faltan {faltan} para el minimo ({OBJETIVO_MIN})"
+            elif n > OBJETIVO_MAX:
+                alerta = f"  <-- por encima del maximo sugerido ({OBJETIVO_MAX})"
+            else:
+                alerta = "  OK"
             print(f"  {n:>4}  {barra:<30} {pref}{alerta}")
+        if faltan_total:
+            print(f"\n  Total de fotos que faltan para que TODAS las clases lleguen")
+            print(f"  al minimo de {OBJETIVO_MIN}: {faltan_total}.")
         if maximo > 3 * minimo:
             print(f"\n  AVISO: desbalance {maximo}:{minimo}. Las clases con menos fotos")
-            print("  se detectaran peor. Lo ideal es 150+ por clase y proporciones parecidas.")
+            print("  se detectaran peor. Lo ideal es proporciones parecidas entre clases.")
 
     if args.dry_run:
         print("\n--dry-run: no se escribio nada.")

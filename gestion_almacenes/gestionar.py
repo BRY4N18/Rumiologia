@@ -47,8 +47,14 @@ MODELO_CONSULTA = "gemini-3.6-flash"
 # La MISMA instruccion que usa la app. Sin ella el modelo rellena los huecos con
 # conocimiento general de internet en vez de reconocer que no tiene el dato, asi
 # que probar sin instruccion no representa el comportamiento real.
-# Si se cambia aqui, hay que cambiarla tambien en ClienteGemini.java.
-INSTRUCCION = """Eres el asistente del laboratorio de Rumiologia. Ayudas a estudiantes
+# Si se cambia aqui, hay que cambiarla tambien en AsistenteGemini.java.
+#
+# Se arma en dos partes (ver INSTRUCCION() abajo) porque la regla de "hay dos
+# estufas, pregunta cual" solo tiene sentido SIN filtro de equipo. Con un filtro
+# activo, el modelo ya sabe cual estufa es por la busqueda acotada, y preguntar
+# "a que equipo te refieres" ignora justo eso - bug real encontrado probando en
+# un dispositivo conectado (ver DecisionesMovil.md).
+INSTRUCCION_BASE = """Eres el asistente del laboratorio de Rumiologia. Ayudas a estudiantes
 a entender y operar los equipos del laboratorio.
 
 Respondes UNICAMENTE con la informacion de las fichas tecnicas que la herramienta de
@@ -64,10 +70,27 @@ Reglas estrictas:
 - Cuando la ficha incluya una advertencia de seguridad relacionada con lo que se
   pregunta, mencionala aunque no te la hayan pedido.
 - Di a que equipo corresponde tu respuesta: el usuario puede no tenerlo delante.
-- Hay DOS estufas distintas (Estufa de Secado ANKOM y Estufa Universal MEMMERT). Si
-  la pregunta dice solo "la estufa", pregunta a cual se refiere antes de responder.
 - Responde en espanol, breve y directo, como a un estudiante.
 - Las respuestas se leen en voz alta: evita tablas y listas muy largas."""
+
+# Solo se agrega SIN filtro de equipo (chat general): ahi el modelo de verdad no
+# sabe a que estufa se refiere la pregunta.
+INSTRUCCION_DESAMBIGUAR_ESTUFAS = """
+- Hay DOS estufas distintas (Estufa de Secado ANKOM y Estufa Universal MEMMERT). Si
+  la pregunta dice solo "la estufa" sin mas contexto, pregunta a cual se refiere
+  antes de responder."""
+
+# Solo se agrega CON filtro de equipo activo.
+INSTRUCCION_EQUIPO_YA_SELECCIONADO = """
+- La busqueda ya esta acotada al equipo que la persona tiene seleccionado. Aunque la
+  pregunta diga "este equipo", "el equipo" o no lo nombre, NO preguntes a que equipo
+  se refiere: ya se sabe cual es. Respondela directamente con la ficha recuperada."""
+
+
+def instruccion_para(equipo: str | None) -> str:
+    """Arma la instruccion final segun si hay un filtro de equipo activo o no."""
+    extra = INSTRUCCION_EQUIPO_YA_SELECCIONADO if equipo else INSTRUCCION_DESAMBIGUAR_ESTUFAS
+    return INSTRUCCION_BASE + extra
 
 
 class GestorAlmacenes:
