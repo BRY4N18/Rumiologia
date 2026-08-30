@@ -25,22 +25,21 @@ __pycache__/
 # completas nuevas que ya no se pueden borrar sin reescribir el historial.
 ml/datasets/
 ml/runs/
-ml/export_labelstudio/
-dataset/
 dataset.zip
+
 # Carpetas de fotos completas: contienen imagenes del laboratorio con personas.
 # Nunca deben llegar a un repositorio publico.
-ml/imagenes_crudas/
-ml/imagenes_listas/
+# ml/imagenes_crudas/
+# ml/imagenes_listas/
 
-*.jpg
-*.jpeg
-*.png
-*.bmp
-*.webp
-*.heic
-*.HEIC
-*.heif
+# *.jpg
+# *.jpeg
+# *.png
+# *.bmp
+# *.webp
+# *.heic
+# *.HEIC
+# *.heif
 
 # Pesos de PyTorch (se regeneran entrenando; guardalos en Drive)
 *.pt

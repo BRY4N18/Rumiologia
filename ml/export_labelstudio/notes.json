@@ -1,0 +1,37 @@
+{
+  "categories": [
+    {
+      "id": 0,
+      "name": "ankom_200_fiber_analyzer"
+    },
+    {
+      "id": 1,
+      "name": "ankom_daisy_incubator"
+    },
+    {
+      "id": 2,
+      "name": "ankom_estufa"
+    },
+    {
+      "id": 3,
+      "name": "aquasearcher_ab33m1"
+    },
+    {
+      "id": 4,
+      "name": "contador_de_colonias"
+    },
+    {
+      "id": 5,
+      "name": "memmert"
+    },
+    {
+      "id": 6,
+      "name": "ohaus_pr224"
+    }
+  ],
+  "info": {
+    "year": 2026,
+    "version": "1.0",
+    "contributor": "Label Studio"
+  }
+}
