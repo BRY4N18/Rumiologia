@@ -1,9 +1,10 @@
 # Pendientes para la entrega final
 
 Comparación del proyecto contra los lineamientos de la asignación (Tema 4 —
-Laboratorio de Rumiología), hecha el 2026-08-30. Consolida lo que estaba
-repartido entre el `README.md` raíz y `DecisionesMovil.md`, más lo que no
-tenía dónde vivir todavía.
+Laboratorio de Rumiología), hecha el 2026-08-30 y **revisada el 2026-08-31**
+contra el código y el dataset reales. Consolida lo que estaba repartido entre
+el `README.md` raíz y `DecisionesMovil.md`, más lo que no tenía dónde vivir
+todavía.
 
 No repite lo que ya está resuelto (ver "Estado" en `README.md`). Es solo lo
 que falta, ordenado por qué tan bloqueante es.
@@ -11,8 +12,10 @@ que falta, ordenado por qué tan bloqueante es.
 ## 1. Dataset — bloqueante, hay que volver al laboratorio
 
 Conteo real hecho el 2026-08-30 sobre `ml/imagenes_crudas/` (fotos originales
-por carpeta) y `dataset/labels/` (cajas ya etiquetadas y divididas). El
-lineamiento pide **80–150 fotos por tipo de equipo**.
+por carpeta) y `dataset/labels/` (cajas ya etiquetadas y divididas), y
+**vuelto a verificar el 2026-08-31**: las cifras siguen siendo exactas, no ha
+entrado ninguna foto nueva. El lineamiento pide **80–150 fotos por tipo de
+equipo**.
 
 | Clase | Fotos crudas hoy | Faltan para el mínimo (80) | Cajas etiquetadas (train/val/test) |
 |---|---:|---:|---|
@@ -86,11 +89,11 @@ servidor propio").
 - [x] Pantalla **Ajustes** (2026-08-30): cada persona pega su propia clave de
   Gemini desde la app. Se cifra en el dispositivo con AES-256-GCM y una
   llave del Android Keystore (`CifradorClave`, `AlmacenClaves`) — nunca se
-  guarda en texto plano. `ClaveUsuario` (nuevo `ProveedorClave`) la
-  prioriza y solo cae a la clave compilada de `local.properties` si no hay
-  ninguna guardada (para seguir pudiendo desarrollar sin abrir Ajustes cada
-  vez). Entradas: botón de engranaje en la cámara, y un aviso en el chat si
-  no hay ninguna clave disponible.
+  guarda en texto plano. `ClaveUsuario` es hoy la **única** implementación
+  de `ProveedorClave`: si no hay clave guardada devuelve `null` y el chat
+  se bloquea con un aviso, sin ningún respaldo compilado (ver el punto de
+  más abajo). Entradas: botón de engranaje en la cámara, y el aviso en el
+  chat cuando no hay clave disponible.
 - [x] ~~Copia cifrada en Supabase~~ — se implementó completa y funcionando
   (login anónimo, tabla `claves_api` con RLS, único archivo Kotlin del
   proyecto), pero se **quitó el 2026-08-30**: el equipo no le vio sentido
@@ -100,7 +103,14 @@ servidor propio").
   quitado por completo el 2026-08-30 (`ClaveCompilada`, el `buildConfigField`
   y la lectura de `local.properties` en `build.gradle`). Ahora la única
   fuente de la clave es la que cada persona guarda en Ajustes; sin eso, el
-  APK no lleva ninguna clave dentro. Detalle en `DecisionesMovil.md`.
+  APK no lleva ninguna clave dentro. Verificado el 2026-08-31: no queda
+  ninguna mención a `GEMINI_API_KEY` ni a `BuildConfig` en `app/src` ni en
+  los `build.gradle`. Detalle en `DecisionesMovil.md`.
+- [ ] **Borrar la línea `GEMINI_API_KEY=...` que sigue en el `local.properties`
+  local.** Ya no la lee nadie, pero es una clave real en texto plano en el
+  disco de trabajo. El archivo está en `.gitignore`, así que nunca se subió;
+  aun así conviene quitarla y, por prudencia, regenerar esa clave en
+  aistudio.google.com.
 
 ## 5. Entregables de cierre — a propósito, después de la app
 
@@ -118,7 +128,11 @@ ingeniero. No se generan antes por evitar rehacer trabajo si algo cambia.
   el `.tflite`) está guardado ahí — hoy `*.pt` está excluido del repo a
   propósito (ver `.gitignore`).
 - [ ] Generar y guardar una copia del APK instalable para la entrega (no se
-  versiona en git a propósito).
+  versiona en git a propósito). El que hay hoy en la raíz del proyecto,
+  `Rumiologia-1.6.apk`, **está desfasado**: la app va por versionName 1.7
+  (versionCode 11) y ese APK es anterior a la bienvenida, la tira de
+  equipos, el modo de voz persistente y el modo oscuro. Hay que regenerarlo
+  al cerrar la entrega.
 
 ## Ya resuelto, no repetir aquí
 

@@ -19,9 +19,8 @@ import javax.crypto.spec.GCMParameterSpec;
  *
  * <p>La llave se genera una sola vez, vive dentro del almacén seguro del dispositivo
  * y no se puede exportar en texto plano: ni esta clase ni nadie puede leerla, solo
- * usarla para cifrar/descifrar. Por eso lo único que llega a disco (o a Supabase, si
- * se activa la copia en la nube) es el par cifrado+iv, nunca la clave de Gemini en
- * claro.
+ * usarla para cifrar/descifrar. Por eso lo único que llega a disco es el par
+ * cifrado+iv, nunca la clave de Gemini en claro.
  */
 final class CifradorClave {
 

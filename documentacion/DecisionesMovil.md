@@ -11,7 +11,15 @@ Está dividido en tres partes:
    realidad, y por qué.
 
 Para el detalle de cada clase y función del código, ver
-[`ExplicacionDetalle.md`](ExplicacionDetalle.md).
+[`ExplicacionDetalle.md`](ExplicacionDetalle.md). Para lo que falta de cara a la
+entrega, ver [`PENDIENTES.md`](PENDIENTES.md).
+
+> **Cómo leer la Parte 3.** Es un registro cronológico: cada entrada cuenta una
+> decisión en el momento en que se tomó. Una entrada posterior puede revertir a una
+> anterior (pasó con la copia en la nube y con la clave compilada), y las entradas
+> viejas se dejan tal cual a propósito, porque el razonamiento descartado también es
+> parte de la documentación. **Lo que vale hoy es siempre la entrada más reciente
+> sobre el tema.**
 
 ---
 
@@ -530,9 +538,12 @@ proveedor significa escribir otra implementación, sin tocar la interfaz de usua
 No es teórico: el asistente ya vivió en un backend FastAPI antes de moverse a Gemini
 directo, y la pantalla no cambió.
 
-Lo mismo con `ProveedorClave`: hoy la clave viene compilada desde `local.properties`;
-cuando se implemente Supabase o la pantalla de configuración, será otra implementación
-en la misma línea de `FabricaAsistente`.
+Lo mismo con `ProveedorClave`. Cuando se escribió esta sección la clave venía
+compilada desde `local.properties`; hoy la única implementación es `ClaveUsuario`, que
+lee la que cada persona guarda cifrada en Ajustes (ver las entradas del 2026-08-30 más
+abajo). El punto se mantiene: cambiar de dónde sale la clave fue exactamente eso,
+sustituir una implementación en la misma línea de `FabricaAsistente`, sin tocar el
+chat.
 
 ## El flujo al tocar un equipo
 
