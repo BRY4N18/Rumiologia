@@ -1,21 +1,52 @@
 # Pendientes para la entrega final
 
 Comparación del proyecto contra los lineamientos de la asignación (Tema 4 —
-Laboratorio de Rumiología), hecha el 2026-08-30 y **revisada el 2026-08-31**
-contra el código y el dataset reales. Consolida lo que estaba repartido entre
-el `README.md` raíz y `DecisionesMovil.md`, más lo que no tenía dónde vivir
-todavía.
+Laboratorio de Rumiología), hecha el 2026-08-30 y **actualizada el 2026-09-01**
+tras la segunda sesión de fotos y el re-etiquetado completo. Consolida lo que
+estaba repartido entre el `README.md` raíz y `DecisionesMovil.md`, más lo que
+no tenía dónde vivir todavía.
 
 No repite lo que ya está resuelto (ver "Estado" en `README.md`). Es solo lo
 que falta, ordenado por qué tan bloqueante es.
 
-## 1. Dataset — bloqueante, hay que volver al laboratorio
+## 1. Dataset — RESUELTO (2026-09-01)
 
-Conteo real hecho el 2026-08-30 sobre `ml/imagenes_crudas/` (fotos originales
-por carpeta) y `dataset/labels/` (cajas ya etiquetadas y divididas), y
-**vuelto a verificar el 2026-08-31**: las cifras siguen siendo exactas, no ha
-entrado ninguna foto nueva. El lineamiento pide **80–150 fotos por tipo de
-equipo**.
+**Las 7 clases superaron el mínimo de 80 fotos.** El lineamiento pide 80–150
+fotos por tipo de equipo, y tras la segunda sesión de fotos (571 imágenes
+nuevas tomadas por el equipo el 2026-08-31) y el re-etiquetado completo en
+Label Studio, el conteo medido sobre el export es:
+
+| Clase | Fotos | Cajas | Estado |
+|---|---:|---:|---|
+| `ankom_200_fiber_analyzer` | 107 | 107 | OK |
+| `ankom_daisy_incubator` | 157 | 216 | OK |
+| `ankom_estufa` | 102 | 102 | OK (venía de 10) |
+| `aquasearcher_ab33m1` | 218 | 286 | OK |
+| `contador_de_colonias` | 217 | 217 | OK |
+| `memmert` | 89 | 89 | OK, la más justa |
+| `ohaus_pr224` | 313 | 419 | OK |
+
+**854 imágenes y 1436 cajas**, frente a las 306 imágenes y 322 cajas
+anteriores. La densidad subió de **1,05 a 1,68 cajas por foto**: la regla de
+etiquetar todos los equipos visibles sí se aplicó esta vez.
+
+Lo que queda abierto de este punto, ya no como bloqueante sino como mejora:
+
+- [ ] `memmert` es ahora el eslabón débil: 89 fotos y solo **57 cajas en
+  train**. Es además la que se confunde con `ankom_estufa`. Si el modelo falla
+  en alguna clase, es la primera candidata.
+- [ ] Desbalance **4,7:1** entre `ohaus_pr224` (419 cajas) y `memmert` (89).
+  `prepare_images.py` avisa por encima de 3:1. No impide entrenar, pero explica
+  de antemano si las clases con menos ejemplos rinden peor.
+- [ ] **No hay imágenes negativas** (escenas sin ningún equipo). `ml/README.md`
+  recomienda ~10 %; ayudan a reducir falsos positivos.
+- [ ] Quedaron **24 tareas sin anotar** de las 878 subidas. El snapshot se
+  generó con 854. Terminarlas sumaría un poco más de material.
+
+### Conteo histórico (2026-08-30), antes de la segunda sesión
+
+Se conserva como referencia de dónde se partía. El lineamiento pide
+**80–150 fotos por tipo de equipo**.
 
 | Clase | Fotos crudas hoy | Faltan para el mínimo (80) | Cajas etiquetadas (train/val/test) |
 |---|---:|---:|---|
@@ -27,41 +58,47 @@ equipo**.
 | `contador_de_colonias` | 51 | 29 | 46 / 8 / 2 = 56 |
 | `ankom_200_fiber_analyzer` | 101 | 0 (ya en rango) | 51 / 15 / 8 = 74 |
 
-**Total: faltan 241 fotos nuevas** para que las 6 clases por debajo del
-mínimo lleguen a 80 (¡`ankom_200_fiber_analyzer` ya está lista, no hace
-falta tocarla!). El dataset actual tiene 306 imágenes con 322 cajas en total
-(~1.05 cajas/foto), confirmando el aviso del README: casi no hay fotos con
-varios equipos etiquetados a la vez.
+**Faltaban 241 fotos nuevas** para que las 6 clases por debajo del mínimo
+llegaran a 80. El dataset de entonces tenía 306 imágenes con 322 cajas
+(~1.05 cajas/foto). Todo eso quedó resuelto con la sesión del 2026-08-31.
 
-- [x] ~~Correr `prepare_images.py --dry-run` para saber el déficit por
-  clase~~ — hecho arriba directamente contando las carpetas (el venv local
-  no tenía `pillow`/`pillow-heif` instalados; instalar antes de la próxima
-  corrida real: `.venv\Scripts\python.exe -m pip install pillow pillow-heif`).
-- [ ] Nueva sesión de fotos en el laboratorio, en este orden de urgencia:
-  `ankom_estufa` (69) → `memmert` (39) → `ohaus_pr224` (36) →
-  `aquasearcher_ab33m1` (35) → `ankom_daisy_incubator` (33) →
-  `contador_de_colonias` (29).
-  - `ankom_estufa` es además la más urgente por otro motivo: se confunde
-    con `memmert` (ambas son estufas) y hoy casi no tiene datos para
-    aprender la diferencia.
-- [ ] Al fotografiar, **etiquetar todos los equipos visibles en cada foto**,
-  no solo el principal (regla ya documentada en `ml/README.md` §1, pero el
-  dataset actual no la cumple: ~1 caja por foto en promedio). Un equipo
-  visible sin caja le enseña al modelo que es "fondo".
-- [ ] Variar ángulo, distancia, iluminación y fondo por sesión, no repetir
-  ráfagas casi idénticas — es lo que hoy infla el mAP50 (0.985 no es
-  representativo, según el propio README).
-- [ ] Volver a correr `prepare_images.py` → Label Studio → `split_dataset.py`
-  → `check_dataset.py` → reentrenar con `train_yolo26.ipynb`.
+- [x] ~~Correr `prepare_images.py --dry-run` para saber el déficit por clase~~
+- [x] ~~Nueva sesión de fotos en el laboratorio~~ — hecha el 2026-08-31 por
+  Belinda (165), Mario (353) y Melanie (53): **571 fotos nuevas**, verificadas
+  sin duplicados contra las existentes.
+- [x] ~~Etiquetar todos los equipos visibles en cada foto~~ — la densidad pasó
+  de 1,05 a **1,68 cajas por foto**.
+- [x] ~~Volver a correr el pipeline completo~~ — `prepare_images.py` →
+  Label Studio (HumanSignal Cloud) → `split_dataset.py` → `check_dataset.py`
+  (`OK`) → `dataset.zip` regenerado.
 
-## 2. Split 70/15/15, no 70/20/10
+Notas de método que valen para la próxima vez:
 
-`ml/scripts/split_dataset.py` tiene por defecto `--val 0.20 --test 0.10`. El
-lineamiento pide exactamente **70/15/15**.
+- `prepare_images.py` **renumera desde 1 en cada corrida y no limpia la salida**.
+  Correrlo dos veces con distinto número de fotos cambia a qué foto apunta cada
+  nombre y rompe la correspondencia con lo ya etiquetado. Por eso se le
+  agregaron `--entrada`, `--salida`, `--sufijo` y una guarda que aborta antes de
+  pisar archivos existentes.
+- El importador de HumanSignal **acepta 100 archivos por tanda**: las 878 se
+  subieron en 9 lotes.
+- El export **YOLO a secas no trae las imágenes**; hay que pedir
+  **YOLO_WITH_IMAGES**. Los `.txt` conservan el nombre original detrás de un
+  hash (`003e114c-mario_s2_0042.txt`), así que también se pueden reemparejar
+  con las fotos locales si hiciera falta.
 
-- [ ] Volver a dividir con `--val 0.15 --test 0.15` cuando se rehaga el
-  dataset ampliado (no hace falta hacerlo dos veces: se resuelve en el mismo
-  re-split del punto 1).
+## 2. Split 70/15/15 — RESUELTO (2026-09-01)
+
+`ml/scripts/split_dataset.py` **sigue teniendo por defecto** `--val 0.20
+--test 0.10`, así que los dos flags hay que pasarlos siempre a mano:
+
+```
+python ml/scripts/split_dataset.py --src ml/export_labelstudio --dst dataset \
+    --val 0.15 --test 0.15 --keep-negatives
+```
+
+- [x] ~~Volver a dividir con `--val 0.15 --test 0.15`~~ — hecho: el dataset
+  actual es **597 train / 128 val / 129 test** sobre 854 imágenes, y
+  `check_dataset.py` devuelve `OK`.
 
 ## 3. Arquitectura del RAG — decisión tomada, hay que documentarla bien
 
@@ -124,15 +161,19 @@ ingeniero. No se generan antes por evitar rehacer trabajo si algo cambia.
   visita y se fotografío de manera informal; falta el documento/registro
   formal si el docente lo exige por escrito.
 - [ ] Confirmar que el Drive con el dataset (`MyDrive/Laboratorio_Rumiologia/`)
-  es accesible para quien evalúe, y que `best.pt` (modelo original, no solo
-  el `.tflite`) está guardado ahí — hoy `*.pt` está excluido del repo a
-  propósito (ver `.gitignore`).
-- [ ] Generar y guardar una copia del APK instalable para la entrega (no se
-  versiona en git a propósito). El que hay hoy en la raíz del proyecto,
-  `Rumiologia-1.6.apk`, **está desfasado**: la app va por versionName 1.7
-  (versionCode 11) y ese APK es anterior a la bienvenida, la tira de
-  equipos, el modo de voz persistente y el modo oscuro. Hay que regenerarlo
-  al cerrar la entrega.
+  es accesible para quien evalúe. El `best.pt` **ya se guarda solo** ahí: la
+  celda de entrenamiento usa `project=f'{BASE}/runs'`, así que los pesos
+  quedan en `runs/rumio_v1/weights/best.pt`. También hay copia local en
+  `ml/models/best.pt` (no versionada: `*.pt` está excluido en `.gitignore`).
+- [x] ~~Generar y guardar una copia del APK instalable~~ — `Rumiologia-1.7.apk`
+  (versionCode 11) en la raíz del proyecto, generado el 2026-09-01 con el
+  modelo reentrenado dentro. Se borró el `Rumiologia-1.6.apk` anterior, que
+  no tenía la bienvenida, la tira de equipos, el modo de voz persistente ni
+  el modo oscuro. No se versiona en git a propósito.
+  - Es un build **debug**: instalable, pero firmado con la clave de depuración.
+    El proyecto no tiene `signingConfig`, así que `assembleRelease` saldría
+    sin firmar y no se podría instalar. Si el docente exige un release
+    firmado, hay que crear un keystore antes.
 
 ## Ya resuelto, no repetir aquí
 

@@ -91,16 +91,29 @@ Google Drive. Ver [`ml/README.md`](ml/README.md) para el flujo completo.
 - [x] Modo de voz persistente: se conversa hablando, turno tras turno
 - [x] Voz de Rumi elegible en Ajustes, y respuestas renderizadas en Markdown
 - [x] Modo oscuro con interruptor manual (Claro / Oscuro / Seguir el sistema)
+- [x] Dataset ampliado a 854 imágenes: las 7 clases superan el mínimo de 80
 - [ ] Streaming de respuestas
-- [ ] Ajustar el presupuesto de razonamiento del modelo
-- [ ] Reforzar el dataset de `ankom_estufa` (7 imágenes de entrenamiento)
+- [ ] Ajustar el presupuesto de razonamiento del modelo (`thinkingLevel`)
+- [ ] Reforzar `memmert`, la clase con menos ejemplos (57 cajas en train)
 
 Lo que falta de cara a la entrega —dataset, split 70/15/15, video y evidencias— está
 en [`documentacion/PENDIENTES.md`](documentacion/PENDIENTES.md).
 
 ## Limitaciones conocidas
 
-El dataset actual son 306 imágenes con 322 cajas (~1 por foto). La clase
-`ankom_estufa` tiene solo 7 imágenes de entrenamiento y no se detecta de forma
-fiable. Las métricas de validación (mAP50 = 0.985) están infladas porque muchas
-fotos son ráfagas casi idénticas repartidas entre entrenamiento y validación.
+El dataset son **854 imágenes con 1436 cajas** (1,68 por foto), repartidas
+70/15/15. Las 7 clases superan el mínimo de 80 fotos.
+
+Lo que sigue abierto:
+
+- **`memmert` es la clase más justa**: 89 fotos y 57 cajas de entrenamiento. Es
+  además la que se confunde con `ankom_estufa`, porque ambas son estufas.
+- **Desbalance 4,7:1** entre `ohaus_pr224` (419 cajas) y `memmert` (89).
+- **No hay imágenes negativas** (escenas sin ningún equipo); ayudarían a reducir
+  falsos positivos.
+
+Sobre las métricas: el mAP50 de 0.985 del primer entrenamiento **estaba
+inflado**, porque muchas fotos eran ráfagas casi idénticas repartidas entre
+entrenamiento y validación. El dataset actual es bastante más independiente, así
+que las cifras nuevas serán más bajas y a la vez más honestas — no son
+comparables con aquel número.
