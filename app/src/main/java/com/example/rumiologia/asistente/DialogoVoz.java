@@ -88,6 +88,17 @@ public class DialogoVoz extends DialogFragment {
         if (estado != null) {
             estado.setText(idTexto);
         }
+        if (circulo != null) {
+            if (idTexto == R.string.chat_escuchando) {
+                circulo.setEstado(CirculoVozView.Estado.ESCUCHANDO);
+            } else if (idTexto == R.string.voz_pensando || idTexto == R.string.voz_analizando) {
+                circulo.setEstado(CirculoVozView.Estado.PENSANDO);
+            } else if (idTexto == R.string.voz_hablando) {
+                circulo.setEstado(CirculoVozView.Estado.HABLANDO);
+            } else {
+                circulo.setEstado(CirculoVozView.Estado.REPOSO);
+            }
+        }
     }
 
     public void mostrarTextoReconocido(String texto) {
@@ -138,7 +149,10 @@ public class DialogoVoz extends DialogFragment {
      */
     public void iniciarAnimacionHabla() {
         detenerAnimacionHabla();
-        rebote = ValueAnimator.ofFloat(0.88f, 1.08f);
+        if (circulo != null) {
+            circulo.setEstado(CirculoVozView.Estado.HABLANDO);
+        }
+        rebote = ValueAnimator.ofFloat(0.92f, 1.08f);
         rebote.setDuration(220);
         rebote.setRepeatMode(ValueAnimator.REVERSE);
         rebote.setRepeatCount(ValueAnimator.INFINITE);
@@ -148,7 +162,7 @@ public class DialogoVoz extends DialogFragment {
             }
         });
         rebote.start();
-        // Los anillos acompañan con un pulso más suave que el del rebote del avatar.
+        // Las ondas y partículas acompañan con el pulso al hablar.
         iniciarPulsoAutomatico();
     }
 
@@ -159,6 +173,7 @@ public class DialogoVoz extends DialogFragment {
         }
         if (circulo != null) {
             circulo.setEscalaAvatar(1f);
+            circulo.setEstado(CirculoVozView.Estado.REPOSO);
         }
         detenerPulsoAutomatico();
     }

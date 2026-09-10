@@ -174,7 +174,7 @@ public class ModalEquipo extends BottomSheetDialogFragment {
         }
 
         boton.setOnClickListener(v -> {
-            startActivity(ChatActivity.intentPara(contexto, slug, nombre));
+            startActivity(ChatActivity.intentPara(contexto, slug, nombre, true));
             dismiss();
         });
     }

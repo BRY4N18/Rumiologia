@@ -30,6 +30,14 @@ public interface AsistenteIA {
      */
     void preguntar(String pregunta, String equipo, List<Turno> historial, Respuesta callback);
 
+    /**
+     * Envía una pregunta especificando si la respuesta se reproducirá por voz (Modo Voz)
+     * para modular la brevedad y estilo conversacional.
+     */
+    default void preguntar(String pregunta, String equipo, List<Turno> historial, boolean modoVoz, Respuesta callback) {
+        preguntar(pregunta, equipo, historial, callback);
+    }
+
     /** Un turno previo de la conversación. */
     class Turno {
         public final boolean esDelUsuario;

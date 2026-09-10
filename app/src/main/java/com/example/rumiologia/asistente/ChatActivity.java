@@ -62,12 +62,19 @@ public class ChatActivity extends AppCompatActivity {
     private static final String TAG = "ChatActivity";
     private static final String EXTRA_EQUIPO = "equipo";
     private static final String EXTRA_NOMBRE = "nombre";
+    private static final String EXTRA_INICIAR_VOZ = "iniciar_voz";
 
     /** Abre el chat asociado a un equipo detectado. */
     public static Intent intentPara(Context contexto, String slugEquipo, String nombreEquipo) {
+        return intentPara(contexto, slugEquipo, nombreEquipo, false);
+    }
+
+    /** Abre el chat asociado a un equipo detectado, pudiendo iniciar directamente en modo voz. */
+    public static Intent intentPara(Context contexto, String slugEquipo, String nombreEquipo, boolean iniciarEnVoz) {
         Intent i = new Intent(contexto, ChatActivity.class);
         i.putExtra(EXTRA_EQUIPO, slugEquipo);
         i.putExtra(EXTRA_NOMBRE, nombreEquipo);
+        i.putExtra(EXTRA_INICIAR_VOZ, iniciarEnVoz);
         return i;
     }
 
@@ -153,6 +160,11 @@ public class ChatActivity extends AppCompatActivity {
         prepararSintetizador();
         mostrarBienvenida();
         revisarClave();
+
+        boolean iniciarEnVoz = getIntent().getBooleanExtra(EXTRA_INICIAR_VOZ, false);
+        if (savedInstanceState == null && iniciarEnVoz && AlmacenClaves.hayClaveDisponible(this)) {
+            lista.post(this::pedirEscucha);
+        }
     }
 
     @Override
@@ -203,7 +215,8 @@ public class ChatActivity extends AppCompatActivity {
         añadir(cargando);
         habilitarEntrada(false);
 
-        asistente.preguntar(pregunta, slugEquipo, historial, new AsistenteIA.Respuesta() {
+        boolean modoVoz = (dialogoVoz != null || lecturaEnVozAlta);
+        asistente.preguntar(pregunta, slugEquipo, historial, modoVoz, new AsistenteIA.Respuesta() {
             @Override
             public void onExito(RespuestaAsistente resultado) {
                 quitar(cargando);
