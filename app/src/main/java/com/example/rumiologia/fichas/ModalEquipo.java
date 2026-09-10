@@ -36,7 +36,7 @@ import java.util.Locale;
  * <ul>
  *   <li><b>Ficha técnica</b> — abre el PDF que viaja dentro del APK. Funciona
  *       siempre, también sin conexión.</li>
- *   <li><b>Chat con Rumi</b> — necesita internet, porque consulta a Gemini.</li>
+ *   <li><b>Chat con Rumi</b> — necesita internet, porque consulta a OpenAI.</li>
  * </ul>
  *
  * <p>Que la ficha funcione sin conexión no es casualidad: es la razón de llevar los

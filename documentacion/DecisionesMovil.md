@@ -110,11 +110,11 @@ EJECUCIÓN EN EL TELÉFONO
   CameraX → Detector (LiteRT) → OverlayView        sin internet
                                      │ toque
                                      ▼
-                              ChatActivity → AsistenteIA ──HTTP──► Gemini
-                              (texto y voz)   (interfaz)      + File Search
-                                                                   │
-                                                          fichas técnicas .md
-                                                        (filtradas por equipo)
+                               ChatActivity → AsistenteIA ──HTTP──► OpenAI (Responses API)
+                               (texto y voz)   (interfaz)      + File Search (Vector Store)
+                                                                    │
+                                                           fichas técnicas .md
+                                                         (+ Web Search fallback)
 ```
 
 La idea de fondo: **el trabajo pesado ocurre una vez, fuera del teléfono.** Entrenar
@@ -985,10 +985,35 @@ momento estaba en oscuro), y con "Oscuro" fuerza modo oscuro también sin
 importar el sistema — confirmando que las tres opciones son independientes
 entre sí y no solo un reflejo del ajuste del teléfono.
 
+## Migración a OpenAI Responses API con File Search y Web Search (2026-09)
+
+Se migró el asistente conversacional de Google Gemini a **OpenAI Responses API**
+(`POST https://api.openai.com/v1/responses`).
+
+### Por qué el cambio
+Aunque Gemini ofrecía File Search gestionado, OpenAI permite utilizar el nuevo
+endpoint `/v1/responses` integrando directamente herramientas de búsqueda semántica
+en Vector Stores (`file_search`) y búsqueda en internet (`web_search`) de forma
+sincrónica en una única petición HTTP.
+
+### Decisiones técnicas adoptadas:
+1. **Modelo `o4-mini` con razonamiento bajo (`effort: "low"`)**: Provee alta
+   velocidad y mínimo consumo de tokens de razonamiento, evitando la latencia
+   excesiva que produciría un esfuerzo de razonamiento estándar.
+2. **Chunking adaptado a documentos cortos**: En el Vector Store
+   (`vs_6aa204ead5088191bbf9db1aad9ce209`) se redujo el tamaño de fragmento a
+   **300 tokens** y el solapamiento a **30 tokens** (en vez del valor por defecto de
+   800/400). Como las fichas técnicas tienen ~5 KB, esto evita inyectar fragmentos
+   redundantes y ahorra cientos de tokens por consulta.
+3. **Búsqueda Web como respaldo**: Se incluyó la herramienta `web_search` para
+   consultar información técnica oficial de los fabricantes cuando el dato pedido
+   no se encuentre en las fichas del laboratorio.
+4. **Desacoplamiento mantenido**: Gracias a la interfaz `AsistenteIA` y a
+   `FabricaAsistente`, la migración se realizó creando `AsistenteOpenAI` y retirando
+   `AsistenteGemini`, sin tocar la pantalla de chat ni los adaptadores de vista.
+
 ## Pendiente
 
-- Ajustar el presupuesto de razonamiento: entre 403 y 638 tokens por consulta que no
-  aportan nada cuando la respuesta sale de un documento.
-- Streaming de respuestas.
+- Streaming de respuestas en tiempo real.
 - Medir GPU vs CPU y milisegundos en los dispositivos de prueba.
-- Más fotos de `ankom_estufa` y etiquetado de todos los equipos en cada foto.
+- Reforzar `memmert`, la clase con menos ejemplos (57 cajas en train).

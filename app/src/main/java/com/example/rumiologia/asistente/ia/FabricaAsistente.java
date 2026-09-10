@@ -4,12 +4,12 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 
-import com.example.rumiologia.asistente.ia.gemini.AsistenteGemini;
+import com.example.rumiologia.asistente.ia.openai.AsistenteOpenAI;
 
 /**
  * Único punto donde se decide qué implementación de {@link AsistenteIA} se usa.
  *
- * <p>Gracias a esto, {@code ChatActivity} no menciona a Gemini en ninguna línea:
+ * <p>Gracias a esto, {@code ChatActivity} no menciona al proveedor de IA en ninguna línea:
  * pide un asistente y recibe uno. Cambiar de proveedor, o alternar entre varios
  * según configuración, se resuelve aquí sin tocar la pantalla.
  *
@@ -26,7 +26,7 @@ public final class FabricaAsistente {
         if (instancia == null) {
             Context aplicacion = contexto.getApplicationContext();
             ProveedorClave clave = new ClaveUsuario(aplicacion);
-            instancia = new AsistenteGemini(aplicacion, clave);
+            instancia = new AsistenteOpenAI(aplicacion, clave);
         }
         return instancia;
     }

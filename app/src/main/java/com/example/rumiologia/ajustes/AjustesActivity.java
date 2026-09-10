@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Pantalla de ajustes: la clave de Gemini de cada persona y, aparte, qué voz usa
+ * Pantalla de ajustes: la clave de OpenAI de cada persona y, aparte, qué voz usa
  * Rumi para hablar.
  *
  * <p>La clave se cifra en el dispositivo antes de guardarse ({@link AlmacenClaves})

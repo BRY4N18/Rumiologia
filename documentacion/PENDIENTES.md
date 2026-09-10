@@ -104,14 +104,14 @@ python ml/scripts/split_dataset.py --src ml/export_labelstudio --dst dataset \
 
 El enunciado dice literalmente que "el backend o servidor MCP deberá buscar
 los fragmentos pertinentes" y que "todos los proyectos mantienen exactamente
-la misma arquitectura". Este proyecto llama a Gemini File Search **directo
+la misma arquitectura". Este proyecto llama a OpenAI Responses API (File Search + Web Search) **directo
 desde Android**, sin backend propio (ver `DecisionesMovil.md`, sección "Sin
 servidor propio").
 
-**Decisión (2026-08-30): se mantiene así.** Justificación para la entrega:
+**Decisión: se mantiene así.** Justificación para la entrega:
 
-- La app nunca envía documentos completos al LLM — Gemini File Search
-  trocea, indexa y busca los fragmentos, que es el resultado que pide el
+- La app nunca envía documentos completos al LLM — OpenAI File Search
+  trocea, indexa y busca los fragmentos en el Vector Store, que es el resultado que pide el
   enunciado, aunque el motor de búsqueda no sea un servidor propio.
 - Hubo un backend FastAPI propio y se retiró a propósito: dependía de una
   laptop encendida, y apagarla dejaba la app sin asistente en plena
@@ -123,8 +123,8 @@ servidor propio").
 
 ## 4. Seguridad de la clave de API
 
-- [x] Pantalla **Ajustes** (2026-08-30): cada persona pega su propia clave de
-  Gemini desde la app. Se cifra en el dispositivo con AES-256-GCM y una
+- [x] Pantalla **Ajustes**: cada persona pega su propia clave de
+  OpenAI desde la app. Se cifra en el dispositivo con AES-256-GCM y una
   llave del Android Keystore (`CifradorClave`, `AlmacenClaves`) — nunca se
   guarda en texto plano. `ClaveUsuario` es hoy la **única** implementación
   de `ProveedorClave`: si no hay clave guardada devuelve `null` y el chat

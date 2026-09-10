@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
- * Guarda la clave de Gemini que el propio usuario ingresa en Ajustes, cifrada con
+ * Guarda la clave de OpenAI que el propio usuario ingresa en Ajustes, cifrada con
  * {@link CifradorClave}. Nunca se guarda en texto plano.
  *
  * <p>Es el único sitio del proyecto que sabe dónde vive la clave en disco; tanto la
@@ -63,7 +63,7 @@ public final class AlmacenClaves {
         preferencias(contexto).edit().clear().apply();
     }
 
-    /** Hay una clave guardada con la que se pueda hablar con Gemini ahora mismo. */
+    /** Hay una clave guardada con la que se pueda hablar con Rumi ahora mismo. */
     public static boolean hayClaveDisponible(@NonNull Context contexto) {
         return !TextUtils.isEmpty(new ClaveUsuario(contexto).obtener());
     }

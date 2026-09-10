@@ -60,9 +60,9 @@
     <!-- Ajustes: clave de la API -->
     <string name="ajustes_titulo">Ajustes</string>
     <string name="ajustes_desc_atras">Cerrar</string>
-    <string name="ajustes_seccion_clave">Tu clave de Gemini</string>
-    <string name="ajustes_clave_hint">Pega aquí tu clave de Gemini</string>
-    <string name="ajustes_clave_ayuda">Consíguela gratis en aistudio.google.com/apikey. Se guarda cifrada en este dispositivo, nunca en texto plano.</string>
+    <string name="ajustes_seccion_clave">Tu clave de OpenAI</string>
+    <string name="ajustes_clave_hint">Pega aquí tu clave de OpenAI (sk-…)</string>
+    <string name="ajustes_clave_ayuda">Consíguela en platform.openai.com/api-keys. Se guarda cifrada en este dispositivo, nunca en texto plano.</string>
     <string name="ajustes_desc_mostrar">Mostrar u ocultar la clave</string>
     <string name="ajustes_guardar">Guardar clave</string>
     <string name="ajustes_quitar">Quitar clave</string>

@@ -27,7 +27,7 @@ import java.util.List;
  * variantes tan parecidas, tener tres layouts distintos sería más código para el
  * mismo resultado.
  *
- * <p>El texto se renderiza con {@link Markwon}: Gemini responde en Markdown
+ * <p>El texto se renderiza con {@link Markwon}: el asistente responde en Markdown
  * (negrita, listas), y sin esto el usuario vería los asteriscos literales
  * (<code>**así**</code>) en vez de negrita de verdad.
  */

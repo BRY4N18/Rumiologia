@@ -163,8 +163,7 @@ public class ChatActivity extends AppCompatActivity {
 
     /**
      * Muestra el aviso para configurar la clave en Ajustes y bloquea la entrada si
-     * no hay ninguna clave de Gemini guardada — desde que se quitó la clave
-     * compilada, esa es la única fuente. Se revisa también al volver de Ajustes,
+     * no hay ninguna clave guardada. Se revisa también al volver de Ajustes,
      * por si se acaba de guardar una.
      */
     private void revisarClave() {

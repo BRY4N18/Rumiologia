@@ -34,8 +34,8 @@ DETECCIÓN — en el teléfono, sin internet
                                                    └── Chat con Rumi        con internet
                                                             │
 ASISTENTE — sin servidor propio                             ▼
-  ChatActivity ──► AsistenteIA ──► Gemini + File Search ──► fichas .md
-     (texto y voz)   (interfaz)      (filtrado por equipo)
+  ChatActivity ──► AsistenteIA ──► OpenAI (Responses API) ──► File Search + Web Search
+     (texto y voz)   (interfaz)      (o4-mini / Vector Store)
         │
         └──► DialogoVoz: modo de voz persistente, turno tras turno
 ```
@@ -69,10 +69,11 @@ Google Drive. Ver [`ml/README.md`](ml/README.md) para el flujo completo.
   Retrofit 2.11, Markwon 4.6.2 (Markdown en el chat), RecyclerView,
   core-splashscreen
 - **Modelo**: YOLO26n (Ultralytics), 640×640, float32, ~9 MB
-- **Asistente**: Gemini `gemini-3.6-flash` con File Search (RAG gestionado),
-  llamado **directamente desde la app** por REST — sin servidor propio. Voz con
+- **Asistente**: OpenAI `o4-mini` vía Responses API (`/v1/responses`) con File Search
+  (Vector Store de fichas del laboratorio) y Web Search en tiempo real, llamado
+  **directamente desde la app** por REST — sin servidor propio. Voz con
   `SpeechRecognizer` y `TextToSpeech` de Android
-- **Seguridad**: la clave de Gemini la pone cada usuario en Ajustes y se cifra con
+- **Seguridad**: la clave de OpenAI la pone cada usuario en Ajustes y se cifra con
   AES-256-GCM y una llave del Android Keystore. El APK no lleva ninguna clave dentro
 - **Etiquetado**: Label Studio
 

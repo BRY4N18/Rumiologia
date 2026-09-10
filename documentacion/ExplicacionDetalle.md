@@ -35,7 +35,7 @@ Todo el diseño gira alrededor de estos dos flujos.
  3a. Ficha técnica → PDF desde assets             (RepositorioFichas) — sin internet
  3b. Chat con Rumi → el usuario escribe o dicta   (SpeechRecognizer)
  4. La regla decide el alcance de la búsqueda     (ReglaDeAlcance)
- 5. Retrofit llama a Gemini con File Search       (AsistenteGemini)
+ 5. Retrofit llama a OpenAI (/v1/responses)       (AsistenteOpenAI)
  6. La respuesta se muestra con sus fuentes       (ChatAdapter, en Markdown)
  7. Opcionalmente se lee en voz alta              (TextToSpeech, voz de VozRumi)
 ```
@@ -512,7 +512,7 @@ Material tampoco sirve.
 ## `ajustes/AjustesActivity.java` — La pantalla de Ajustes
 
 Tres cosas sin relación entre sí, en una sola pantalla porque son las únicas
-preferencias que tiene la app: la **clave de Gemini**, la **voz de Rumi** y el
+preferencias que tiene la app: la **clave de OpenAI**, la **voz de Rumi** y el
 **tema** claro/oscuro. Se entra desde el botón de engranaje de la cámara.
 
 ### La clave
@@ -572,16 +572,16 @@ asistente/
    ├─ ReglaDeAlcance       decide si filtrar (pura, sin Android)
    ├─ AlcanceConsulta      adapta la regla a los datos de la app
    ├─ FabricaAsistente     único sitio que sabe qué implementación se usa
-   └─ gemini/
-      ├─ GeminiApi         interfaz Retrofit
-      ├─ GeminiDto         las clases del JSON
-      └─ AsistenteGemini   implementa AsistenteIA
+   └─ openai/
+      ├─ OpenAiApi         interfaz Retrofit
+      ├─ OpenAiDto         las clases del JSON
+      └─ AsistenteOpenAI   implementa AsistenteIA
 ```
 
-La división no es decorativa. **`ChatActivity` no menciona a Gemini en ninguna
+La división no es decorativa. **`ChatActivity` no menciona a OpenAI en ninguna
 línea**: pide un asistente a la fábrica y recibe uno. Ese diseño ya se puso a prueba —
-el asistente vivió primero en un backend FastAPI y luego pasó a Gemini directo, y la
-pantalla no cambió.
+el asistente vivió primero en un backend FastAPI, luego pasó a Gemini directo y
+finalmente se migró a OpenAI Responses API (`/v1/responses`), y la pantalla nunca cambió.
 
 ### `AsistenteIA.java` — El contrato
 
@@ -592,7 +592,7 @@ otra implementación de esta interfaz.
 ### `RespuestaAsistente.java` — El resultado en términos del dominio
 
 Texto y fuentes. Existe para que la pantalla no manipule las clases del JSON de ningún
-proveedor: si Gemini cambia la forma de su respuesta, se ajusta la traducción en un
+proveedor: si OpenAI cambia la forma de su respuesta, se ajusta la traducción en un
 solo sitio.
 
 ### `ProveedorClave` y `ClaveUsuario`
@@ -602,7 +602,7 @@ solo sitio.
 (vía `AlmacenClaves`, cifrada con AES-256-GCM y una llave del Android Keystore) y
 devuelve `null` si no hay ninguna guardada — quien la usa avisa al usuario en vez de
 reventar. No hay clave compilada ni de respaldo: sin abrir Ajustes una vez, la app no
-tiene con qué hablarle a Gemini.
+tiene con qué hablarle a OpenAI.
 
 ### `AlmacenClaves.java` — Dónde vive la clave
 
@@ -616,7 +616,7 @@ Base64. Nunca la clave en claro.
 `tieneClaveLocal` mira solo si los dos valores existen, **sin descifrar**: es lo que
 usa el punto verde de Ajustes, y para pintar un punto no hace falta sacar la clave a
 memoria. `hayClaveDisponible` sí la resuelve entera, porque responde otra pregunta:
-¿se puede hablar con Gemini ahora mismo?
+¿se puede hablar con el asistente ahora mismo?
 
 Los fallos de cifrado se registran y siguen: una clave que no se pudo guardar deja la
 app sin asistente, pero cerrarla no lo arregla.
@@ -670,58 +670,49 @@ la regla no dependa de Android.
 
 ### `FabricaAsistente.java` — Dónde se decide el proveedor
 
-Único sitio del proyecto que menciona `AsistenteGemini`. Cambiar de proveedor, o
+Único sitio del proyecto que menciona `AsistenteOpenAI`. Cambiar de proveedor, o
 alternar entre varios según configuración, se resuelve aquí.
 
-### `gemini/GeminiApi.java` — La interfaz Retrofit
+### `openai/OpenAiApi.java` — La interfaz Retrofit
 
-Un solo método: `POST models/{modelo}:generateContent`.
+Un solo método: `POST responses` contra `https://api.openai.com/v1/`.
 
-Se usa REST y no el SDK de Android por un motivo comprobado, no por preferencia: se
-inspeccionaron `com.google.firebase:firebase-ai` 17.16.0 y
-`com.google.ai.client.generativeai` 0.9.0, y **ninguno expone File Search**. Su clase
-`Tool` ofrece funciones, ejecución de código, contexto de URL, Google Search y Google
-Maps. Sin File Search no hay RAG.
+Se comunica con el endpoint de Responses API de OpenAI. La clave viaja en la cabecera
+estándar `Authorization: Bearer <clave>`, nunca en la URL.
 
-La clave viaja en la cabecera `x-goog-api-key`, no en la URL: en la URL acabaría
-escrita en los registros de cualquier proxy intermedio.
+### `openai/OpenAiDto.java` — La forma del JSON
 
-### `gemini/GeminiDto.java` — La forma del JSON
+Todas las clases anidadas en un fichero para modelar las peticiones y respuestas de
+`/v1/responses`.
 
-Todas las clases anidadas en un fichero porque no son lógica, son la forma del JSON;
-verlas juntas permite compararlas de un vistazo con la petición real.
+Define el modelo (`o4-mini`), el array `input` con mensajes de rol `developer`, `user`
+y `assistant`, la configuración de razonamiento (`effort: "low"`), y las herramientas
+activadas: `file_search` (vinculada al Vector Store `vs_6aa204ead5088191bbf9db1aad9ce209`)
+y `web_search`.
 
-Dos métodos hacen algo más que declarar campos: `primerTexto()` concatena las partes
-de la respuesta, y `fuentes()` extrae los documentos citados de `groundingMetadata` —
-lo que distingue una respuesta verificable de una afirmación suelta.
+Dos métodos clave procesan la salida: `primerTexto()` extrae el texto limpio de los
+bloques de mensaje, y `fuentes()` extrae los nombres de archivos citados en `annotations`
+(de tipo `file_citation`), distinguiendo respuestas fundamentadas de alucinaciones.
 
-### `gemini/AsistenteGemini.java` — La implementación
+### `openai/AsistenteOpenAI.java` — La implementación
 
-Concentra todo lo específico del proveedor: la URL, el modelo `gemini-3.6-flash`, el
-identificador del almacén, la instrucción del sistema y la construcción del filtro.
+Concentra todo lo específico del proveedor: la URL de OpenAI, el modelo `o4-mini`, el
+Vector Store ID, la instrucción del sistema, las herramientas y la traducción de errores.
 
-**La instrucción del sistema no es un adorno.** Se comprobó preguntando por la
-incubadora con el filtro puesto en otro equipo: sin instrucción, el modelo respondió
-con tiempos y un método de dos etapas con pepsina que no está en ninguna ficha; con
-ella, reconoció que no tenía el dato.
-
-**La instrucción cambia según cómo se abrió el chat.** A una base común
-(`INSTRUCCION_BASE`) se le suma una de dos:
-
-| Situación | Añadido | Por qué |
-|---|---|---|
-| Se llegó tocando un equipo | `INSTRUCCION_EQUIPO_YA_SELECCIONADO` | Con la estufa ya elegida, preguntar "¿a qué equipo te refieres?" es absurdo: el usuario ya lo dijo apuntando la cámara |
-| Se abrió el chat suelto | `INSTRUCCION_DESAMBIGUAR_ESTUFAS` | Sin contexto, "la estufa" es ambigua entre la ANKOM y la MEMMERT, y ahí sí hay que preguntar |
-
-Es el mismo problema que resuelve `ReglaDeAlcance`, pero en la otra capa: la regla
-decide **dónde buscar**, la instrucción decide **cómo responder** cuando falta un dato.
+**La instrucción del sistema no es un adorno.** Establece la prioridad estricta:
+1. Buscar primero en las fichas técnicas del laboratorio (`file_search`).
+2. Si la información técnica no está en las fichas, usar búsqueda web oficial (`web_search`).
+3. Advertir siempre sobre seguridad (químicos, temperaturas, solventes).
+4. Responder breve para lectura por voz (TTS) y desambiguar las dos estufas.
 
 | Aspecto | Decisión | Por qué |
 |---|---|---|
-| Tiempo de lectura | 90 segundos | El modelo tarda varios segundos; los 10 s por defecto cortarían respuestas válidas |
+| Endpoint | `/v1/responses` | Endpoint moderno de agentes de OpenAI con herramientas sincrónicas |
+| Modelo | `o4-mini` con `effort: "low"` | Rápido, preciso y económico; sin sobrecostos de razonamiento profundo |
+| Herramientas | `file_search` + `web_search` | Fichas técnicas prioritarias + fallback web para especificaciones externas |
+| Tiempo de lectura | 90 segundos | Permite tiempo suficiente para la búsqueda semántica y web |
 | Historial | Últimos 6 turnos | Más contexto encarece sin mejorar: lo útil lo aporta la búsqueda |
-| `temperature` | 0.2 | Fidelidad a la ficha, no redacción creativa |
-| Errores | Traducidos por código HTTP | "Se agotó la cuota" es accionable; "429" no |
+| Errores | Traducidos por código HTTP | "La clave de OpenAI no es válida" o "Se agotó la cuota" son accionables |
 
 ### `Mensaje.java` — Un mensaje en pantalla
 
@@ -753,7 +744,7 @@ error es suyo.
 | Función | Qué hace | Por qué |
 |---|---|---|
 | `intentPara` | Abre el chat para un equipo | Método estático: quien llama no necesita conocer los nombres de los extras |
-| `revisarClave` | Aviso si no hay clave de Gemini | Se repite en `onResume`: al volver de Ajustes con una clave recién guardada, el aviso debe irse solo |
+| `revisarClave` | Aviso si no hay clave de OpenAI | Se repite en `onResume`: al volver de Ajustes con una clave recién guardada, el aviso debe irse solo |
 | `enviarLoEscrito` | Toma el texto del campo y envía | Un solo camino para el botón de enviar y para el dictado: la voz no duplica la lógica de envío |
 | `enviar` | Manda la pregunta al asistente | Arma el historial **antes** de añadir el marcador de carga, para no enviar un turno vacío |
 | `mostrarBienvenida` | Primer mensaje | Cambia según se abra desde una detección o suelto |

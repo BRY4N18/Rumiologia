@@ -5,12 +5,12 @@ import java.util.List;
 /**
  * Contrato del asistente conversacional, independiente del proveedor.
  *
- * <p>La pantalla de chat depende de <b>esta interfaz</b>, no de Gemini. Cambiar de
- * proveedor —a OpenAI, a un servicio propio, o a lo que venga— significa escribir
- * otra implementación, sin tocar la interfaz de usuario.
+ * <p>La pantalla de chat depende de <b>esta interfaz</b>, no de un proveedor específico.
+ * Cambiar de proveedor —a OpenAI, Gemini, un servicio propio o lo que venga— significa
+ * escribir otra implementación, sin tocar la interfaz de usuario.
  *
- * <p>Esa separación no es teórica en este proyecto: el asistente ya vivió en un
- * backend FastAPI antes de moverse a Gemini directo, y la pantalla no cambió.
+ * <p>Esa separación permitió migrar sin problemas de Gemini directo a OpenAI Responses API,
+ * sin alterar la pantalla ni los componentes de interfaz.
  */
 public interface AsistenteIA {
 

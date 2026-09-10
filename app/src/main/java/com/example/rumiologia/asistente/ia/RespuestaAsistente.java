@@ -7,7 +7,7 @@ import java.util.List;
  * Lo que devuelve el asistente, en términos del dominio de la app.
  *
  * <p>Existe para que la pantalla de chat no manipule las clases del JSON de ningún
- * proveedor. Si mañana la respuesta de Gemini cambia de forma, se ajusta la
+ * proveedor. Si mañana la respuesta del proveedor cambia de forma, se ajusta la
  * traducción en un solo sitio y nada más se entera.
  */
 public class RespuestaAsistente {

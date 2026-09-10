@@ -43,7 +43,7 @@ recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 
-# Renderiza el markdown que devuelve Gemini (negrita, listas) en el chat, sin WebView
+# Renderiza el markdown que devuelve el asistente (negrita, listas) en el chat, sin WebView
 markwon-core = { group = "io.noties.markwon", name = "core", version.ref = "markwon" }
 
 [plugins]

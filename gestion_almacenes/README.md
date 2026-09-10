@@ -1,5 +1,9 @@
 # Gestión de almacenes de File Search
 
+> **Nota de migración:** La aplicación móvil ahora utiliza **OpenAI Responses API**
+> con un Vector Store en OpenAI (`vs_6aa204ead5088191bbf9db1aad9ce209`). Este
+> directorio se conserva como referencia de la administración previa sobre Gemini File Search Stores.
+
 Herramienta de administración que se ejecuta **en el PC**. La app Android no la usa:
 solo consulta el almacén ya preparado.
 
